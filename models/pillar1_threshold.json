@@ -1,0 +1,5 @@
+{
+    "best_model": "LightGBM (Weighted)",
+    "threshold": 0.76,
+    "f2_score": 0.6803170409511229
+}

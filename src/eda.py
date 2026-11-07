@@ -1,5 +1,4 @@
 import sys
-import logging
 from pathlib import Path
 
 # Add project root to path
@@ -7,12 +6,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 from src.config import CLEANED_DATA_PATH, FIGURES_DIR, setup_logger
 

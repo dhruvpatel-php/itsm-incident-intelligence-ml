@@ -1,6 +1,4 @@
 import sys
-import json
-import logging
 from pathlib import Path
 
 # Add project root to path
@@ -17,7 +15,7 @@ import joblib
 
 from sklearn.metrics import (
     roc_auc_score, average_precision_score, recall_score,
-    precision_score, roc_curve, precision_recall_curve
+    precision_score, roc_curve
 )
 import lightgbm as lgb
 

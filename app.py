@@ -1,4 +1,3 @@
-import os
 import sys
 import json
 from pathlib import Path
@@ -8,12 +7,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 import joblib
 
-from src.config import FIGURES_DIR, MODELS_DIR, REPORTS_DIR, CLEANED_DATA_PATH, PRIORITY_MATRIX
+from src.config import FIGURES_DIR, MODELS_DIR, REPORTS_DIR
 
 st.set_page_config(
     page_title="ABC Tech | ITSM Machine Learning Suite",
@@ -97,7 +95,7 @@ p4_m = metrics["pillar4_rfc_and_assets"]
 # -------------------------------------------------------------------------------------------------
 if sidebar_nav == "Executive Dashboard":
     st.subheader("Operational Health & ITIL Process Maturity Overview")
-    
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""
@@ -107,14 +105,14 @@ if sidebar_nav == "Executive Dashboard":
         </div>
         """, unsafe_allow_html=True)
     with col2:
-        st.markdown(f"""
+        st.markdown("""
         <div class="kpi-card">
             <div class="kpi-val" style="color:#dc2626;">700 (1.55%)</div>
             <div class="kpi-lbl">P1 / P2 Major Outages</div>
         </div>
         """, unsafe_allow_html=True)
     with col3:
-        st.markdown(f"""
+        st.markdown("""
         <div class="kpi-card">
             <div class="kpi-val" style="color:#d97706;">41.1%</div>
             <div class="kpi-lbl">Reassigned Incident Ratio</div>
@@ -127,9 +125,9 @@ if sidebar_nav == "Executive Dashboard":
             <div class="kpi-lbl">2014 Projected Annual Load</div>
         </div>
         """, unsafe_allow_html=True)
-        
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
     tab1, tab2, tab3 = st.tabs(["Priority Distribution", "Reassignment Escalation", "Historical Inflow Trend"])
     with tab1:
         st.image(str(FIGURES_DIR / "01_priority_distribution.png"), use_container_width=True)
@@ -147,19 +145,19 @@ if sidebar_nav == "Executive Dashboard":
 elif sidebar_nav == "Pillar 1: High Priority Triage":
     st.subheader("Pillar 1 — Predicting High Priority (P1/P2) Tickets")
     st.write("Early Warning ML Engine to intercept catastrophic outages at ticket inception before triage delays.")
-    
+
     col_l, col_r = st.columns([1, 1])
     with col_l:
         st.image(str(FIGURES_DIR / "05_pillar1_roc_pr_curves.png"), use_container_width=True)
     with col_r:
         st.image(str(FIGURES_DIR / "06_pillar1_feature_importance.png"), use_container_width=True)
-        
+
     st.markdown("### Real-Time Incident Priority Risk Assessment")
-    
+
     # Extract authentic CI and WBS lists from trained feature frequencies
     known_cis = sorted(list(p1['ci_freq'].keys())[:25])
     known_wbs = sorted(list(p1['wbs_freq'].keys())[:25])
-    
+
     with st.form("p1_form"):
         f1, f2, f3 = st.columns(3)
         with f1:
@@ -174,17 +172,17 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
             hour = st.slider("Hour of Ticket Submission (0 - 23)", 0, 23, 14)
             dow = st.selectbox("Day of Week", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
             month = st.selectbox("Month of Ticket Submission", list(range(1, 13)), index=2)
-            
+
         submitted = st.form_submit_button("Assess Incident Priority Risk")
-        
+
     if submitted:
         dow_idx = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].index(dow)
         is_unseen = (ci_choice == "Unseen / New Asset")
-        
+
         # Build features strictly matching trained schema
         ci_freq_val = 0.0 if is_unseen else float(p1['ci_freq'].get(ci_choice, 0))
         wbs_freq_val = 0.0 if wbs_choice == "Unseen / New WBS" else float(p1['wbs_freq'].get(wbs_choice, 0))
-        
+
         mock_row = pd.DataFrame([{
             'Open_Hour': hour,
             'Open_DayOfWeek': dow_idx,
@@ -196,7 +194,7 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
             'CI_Cat': ci_cat,
             'Category': cat
         }])
-        
+
         # Categorical dummies
         X_mock = pd.get_dummies(mock_row[['CI_Cat', 'Category']], drop_first=False, dtype=float)
         X_mock['CI_Name_Freq'] = ci_freq_val
@@ -206,15 +204,15 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
         X_mock['Open_DayOfWeek'] = dow_idx
         X_mock['Open_Month'] = month
         X_mock['Is_Weekend'] = 1 if dow_idx >= 5 else 0
-        
+
         # Align with trained feature columns
         train_cols = p1['train_cols']
         X_eval = X_mock.reindex(columns=train_cols, fill_value=0.0)
-        
+
         raw_prob = float(p1['model'].predict_proba(X_eval)[0, 1])
         cal_prob = float(p1['calibrated_model'].predict([raw_prob])[0]) if 'calibrated_model' in p1 else raw_prob
         threshold = float(p1['threshold'])
-        
+
         st.markdown("---")
         res_col1, res_col2 = st.columns([1, 2])
         with res_col1:
@@ -222,7 +220,7 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
                 st.error(f"🚨 **HIGH PRIORITY ESCALATION (P1/P2)**\n\nProbability: **{raw_prob*100:.1f}%** (Threshold: {threshold*100:.1f}%)")
             else:
                 st.success(f"**Standard Ticket (P3 - P5)**\n\nProbability of P1/P2: **{raw_prob*100:.1f}%**")
-                
+
             if is_unseen:
                 st.warning(f"ℹ️ **Unseen Asset Mode**: This asset was not observed in training. Evaluated holdout performance on unseen assets: PR-AUC = **{p1_m['unseen_assets']['pr_auc']:.4f}**, Recall = **{p1_m['unseen_assets']['recall']*100:.1f}%**.")
         with res_col2:
@@ -236,9 +234,9 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
 elif sidebar_nav == "Pillar 2: Volume Forecasting":
     st.subheader("Pillar 2 — Incident Volume & Capacity Forecasting")
     st.write("Production Ensemble (SARIMAX + Naive Persistence) with Moving-Block Bootstrapping.")
-    
+
     st.image(str(FIGURES_DIR / "07_pillar2_volume_forecast.png"), use_container_width=True)
-    
+
     f_col1, f_col2 = st.columns([1, 1])
     with f_col1:
         st.markdown("### 2014 Enterprise Capacity Projections")
@@ -252,7 +250,7 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
         st.markdown("### Capacity Scenarios & Model Benchmarking")
         st.metric("Full-Year 2014 Base Forecast", f"{p2_m['base_vol_2014']:,} tickets", delta=f"95% PI: [{p2_m['low_vol_2014']:,} - {p2_m['high_vol_2014']:,}]")
         st.metric("2015 Capacity Baseline Target", f"{p2_m['scenario_2015_plus5pct']:,} tickets", delta="+5.0% Planning Trend")
-        
+
         st.markdown("**6-Fold Rolling-Origin Backtest Performance (MAPE)**:")
         mape_df = pd.DataFrame([
             {"Model": k, "Backtest MAPE": f"{v:.2f}%"} for k, v in sorted(p2_m['backtest_mape'].items(), key=lambda x: x[1])
@@ -265,13 +263,13 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
 elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
     st.subheader("Pillar 3 — ITIL Priority Engine & First-Touch Department Auto-Routing")
     st.write("Deterministic 2D ITIL lookup + LightGBM impact imputer for unassigned tickets, with intake-safe routing (Variant D).")
-    
+
     r_col1, r_col2 = st.columns([1, 1])
     with r_col1:
         st.image(str(FIGURES_DIR / "09_pillar3_department_confusion_matrix.png"), use_container_width=True)
     with r_col2:
         st.image(str(FIGURES_DIR / "10_pillar3_priority_confusion_matrix.png"), use_container_width=True)
-        
+
     st.markdown("---")
     st.markdown("### Business ROI: Recovered Engineering Capacity")
     s_col1, s_col2, s_col3 = st.columns(3)
@@ -293,12 +291,12 @@ elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
 elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.subheader("Pillar 4 — Proactive RFC Detection & Empirical Bayes Asset Risk Index")
     st.write("Rigorous leakage-free evaluation of RFC signal + Bayesian-shrunk Configuration Item (CI) Risk Index.")
-    
+
     st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), use_container_width=True)
-    
+
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
     st.info(f"**Bayesian Shrinkage Filter (N >= 10)**: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with 1 incident topping raw risk lists). We filter on {p4_m['evaluated_assets_count']} active assets with at least 10 incidents and apply Empirical Bayes shrinkage (m=10.0), guaranteeing rank stability (Spearman rho = {p4_m['min_spearman_rho']:.4f}).")
-    
+
     top_n = st.slider("Number of Assets to Display", 5, 50, 15)
     cols = ['CI_Name', 'CI_Cat', 'total_incidents', 'p1p2_incidents', 'rfc_incidents', 'ARI_Final', 'Risk_Tier']
     display_df = p4_assets[cols].head(top_n).copy()
@@ -311,7 +309,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     }, inplace=True)
     display_df['Asset Risk Index (0-100)'] = display_df['Asset Risk Index (0-100)'].map("{:.1f}".format)
     st.dataframe(display_df, use_container_width=True, hide_index=True)
-    
+
     st.markdown("---")
     st.markdown("### Proactive RFC Prediction (Negative Result Audit)")
     rfc_c1, rfc_c2 = st.columns([1, 1])

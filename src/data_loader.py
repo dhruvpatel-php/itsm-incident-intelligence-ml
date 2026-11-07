@@ -1,6 +1,4 @@
-import re
 import sys
-import logging
 from pathlib import Path
 
 # Add project root to path

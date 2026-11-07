@@ -1,6 +1,4 @@
 import sys
-import json
-import logging
 from pathlib import Path
 
 # Add project root to path
@@ -196,6 +194,7 @@ def build_routing(df=None, base_vol_2014=72714):
     train_d = df_stable.iloc[:n_tr_d]
     val_d = df_stable.iloc[n_tr_d:n_tr_d + n_val_d]
     test_d = df_stable.iloc[n_tr_d + n_val_d:]
+    logger.info(f"Department Routing Split: Train={len(train_d):,}, Val={len(val_d):,}, Test={len(test_d):,}")
 
     y_tr_d = train_d['Dept_Consolidated'].values
     y_te_d = test_d['Dept_Consolidated'].values

@@ -1,6 +1,5 @@
 import sys
 import json
-import logging
 from pathlib import Path
 
 # Add project root to path
@@ -52,7 +51,6 @@ def train_pillar1(df=None):
     n_total = len(df_p1)
     n_tr = int(n_total * 0.65)
     n_val = int(n_total * 0.15)
-    n_te = n_total - n_tr - n_val
 
     train_df = df_p1.iloc[:n_tr].copy()
     val_df = df_p1.iloc[n_tr:n_tr + n_val].copy()

@@ -1,5 +1,4 @@
 import sys
-import os
 import time
 import json
 import hashlib
@@ -15,7 +14,6 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import (
-    CLEANED_DATA_PATH,
     REPORTS_DIR,
     setup_logger
 )

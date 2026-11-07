@@ -1,10 +1,8 @@
 import os
 import sys
 import json
-import re
 import io
 import base64
-import ast
 
 os.environ['MPLCONFIGDIR'] = os.path.abspath('.matplotlib_cache')
 os.makedirs('.matplotlib_cache', exist_ok=True)
@@ -2334,19 +2332,19 @@ for idx, (cell_type, content) in enumerate(cells):
         old_stderr = sys.stderr
         sys.stdout = stdout_buf
         sys.stderr = stderr_buf
-        
+
         exec_res = shell.run_cell(content)
-        
+
         sys.stdout = old_stdout
         sys.stderr = old_stderr
-        
+
         if exec_res.error_in_exec:
             print(f"ERROR IN CELL {idx}: {exec_res.error_in_exec}")
             raise exec_res.error_in_exec
-            
+
         nb_cell = nbformat.v4.new_code_cell(content)
         nb_cell['execution_count'] = idx
-        
+
         # 1. Rich HTML / display outputs first
         for data, meta in captured_displays:
             nb_cell['outputs'].append({
@@ -2354,7 +2352,7 @@ for idx, (cell_type, content) in enumerate(cells):
                 'data': data,
                 'metadata': meta
             })
-            
+
         # 2. Matplotlib PNG figures
         for img_b64 in captured_images:
             nb_cell['outputs'].append({
@@ -2365,7 +2363,7 @@ for idx, (cell_type, content) in enumerate(cells):
                 },
                 'metadata': {}
             })
-            
+
         # 3. Compact stdout stream
         out_text = stdout_buf.getvalue()
         if out_text:
@@ -2374,7 +2372,7 @@ for idx, (cell_type, content) in enumerate(cells):
                 'name': 'stdout',
                 'text': out_text.splitlines(keepends=True)
             })
-            
+
         nb.cells.append(nb_cell)
 plt.show = orig_show
 

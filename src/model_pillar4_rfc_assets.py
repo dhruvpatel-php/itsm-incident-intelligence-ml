@@ -160,7 +160,7 @@ def build_rfc_and_assets():
     cbar = plt.colorbar(scatter, ax=ax)
     cbar.set_label("High Priority Ticket Rate", fontsize=11)
     
-    # Annotate distinct top assets with staggered offsets to prevent overlapping labels
+    # Annotate distinct top assets with two-column staggered layout in data coordinates
     chosen_assets = []
     seen_coords = set()
     for _, row in ci_registry.iterrows():
@@ -168,32 +168,34 @@ def build_rfc_and_assets():
         if coord not in seen_coords:
             seen_coords.add(coord)
             chosen_assets.append(row)
-        if len(chosen_assets) >= 6:
+        if len(chosen_assets) >= 5:
             break
             
     top_assets = pd.DataFrame(chosen_assets)
-    offsets = [
-        (15, 15),     # Asset 1: upper right
-        (18, -25),    # Asset 2: lower right
-        (15, 10),     # Asset 3: right
-        (18, -20),    # Asset 4: lower right
-        (-135, 15),   # Asset 5: upper left
-        (15, -25)     # Asset 6: lower right
+    text_positions = [
+        (3.2, 66.0),   # Asset 1 (x=1, y=62.6) -> Column A
+        (11.0, 58.0),  # Asset 2 (x=2, y=54.1) -> Column B
+        (3.2, 50.0),   # Asset 3 (x=1, y=42.6) -> Column A
+        (11.0, 44.0),  # Asset 4 (x=2, y=39.1) -> Column B
+        (3.2, 38.5)    # Asset 5 (x=1, y=37.6) -> Column A
     ]
     
     for i, (_, row) in enumerate(top_assets.iterrows()):
-        offset = offsets[i % len(offsets)]
+        tx, ty = text_positions[i]
         ax.annotate(
             f"{row['CI_Name']} ({row['CI_Cat']})\nRisk: {row['Asset_Risk_Index']:.1f}",
-            (row['Total_Incidents'], row['Asset_Risk_Index']),
-            xytext=offset, textcoords='offset points',
+            xy=(row['Total_Incidents'], row['Asset_Risk_Index']),
+            xytext=(tx, ty),
+            textcoords='data',
             fontsize=9, fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#94a3b8", alpha=0.92, lw=0.8),
-            arrowprops=dict(arrowstyle="->", color='#334155', lw=1.2, connectionstyle="arc3,rad=0.08")
+            bbox=dict(boxstyle="round,pad=0.35", fc="#ffffff", ec="#64748b", alpha=0.95, lw=1.0),
+            arrowprops=dict(arrowstyle="->", color='#1e293b', lw=1.2, connectionstyle="arc3,rad=-0.05")
         )
         
     ax.set_xscale('log')
-    ax.set_title("ITSM Configuration Item (CI) Failure & Misconfiguration Risk Matrix", fontsize=14, fontweight='bold', pad=12)
+    ax.set_xlim(left=0.7, right=ci_groups['Total_Incidents'].max() * 2.0)
+    ax.set_ylim(bottom=0, top=77)
+    ax.set_title("ITSM Configuration Item (CI) Failure & Misconfiguration Risk Matrix", fontsize=14, fontweight='bold', pad=18)
     ax.set_xlabel("Total Incident Frequency (Log Scale)", fontsize=12)
     ax.set_ylabel("Asset Risk Index (0 - 100)", fontsize=12)
     ax.grid(True, linestyle='--', alpha=0.5)

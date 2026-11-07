@@ -160,15 +160,36 @@ def build_rfc_and_assets():
     cbar = plt.colorbar(scatter, ax=ax)
     cbar.set_label("High Priority Ticket Rate", fontsize=11)
     
-    # Annotate top 6 critical assets
-    top_assets = ci_registry.head(6)
-    for _, row in top_assets.iterrows():
+    # Annotate distinct top assets with staggered offsets to prevent overlapping labels
+    chosen_assets = []
+    seen_coords = set()
+    for _, row in ci_registry.iterrows():
+        coord = (row['Total_Incidents'], round(row['Asset_Risk_Index'], 0))
+        if coord not in seen_coords:
+            seen_coords.add(coord)
+            chosen_assets.append(row)
+        if len(chosen_assets) >= 6:
+            break
+            
+    top_assets = pd.DataFrame(chosen_assets)
+    offsets = [
+        (15, 15),     # Asset 1: upper right
+        (18, -25),    # Asset 2: lower right
+        (15, 10),     # Asset 3: right
+        (18, -20),    # Asset 4: lower right
+        (-135, 15),   # Asset 5: upper left
+        (15, -25)     # Asset 6: lower right
+    ]
+    
+    for i, (_, row) in enumerate(top_assets.iterrows()):
+        offset = offsets[i % len(offsets)]
         ax.annotate(
             f"{row['CI_Name']} ({row['CI_Cat']})\nRisk: {row['Asset_Risk_Index']:.1f}",
             (row['Total_Incidents'], row['Asset_Risk_Index']),
-            xytext=(10, -5), textcoords='offset points',
+            xytext=offset, textcoords='offset points',
             fontsize=9, fontweight='bold',
-            arrowprops=dict(arrowstyle="->", color='black', lw=1)
+            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#94a3b8", alpha=0.92, lw=0.8),
+            arrowprops=dict(arrowstyle="->", color='#334155', lw=1.2, connectionstyle="arc3,rad=0.08")
         )
         
     ax.set_xscale('log')

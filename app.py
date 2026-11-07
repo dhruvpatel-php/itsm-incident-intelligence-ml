@@ -106,13 +106,13 @@ if sidebar_nav == "Executive Dashboard":
     tab1, tab2, tab3 = st.tabs(["Priority Distribution", "Reassignment Escalation", "Historical Inflow Trend"])
     with tab1:
         st.image(str(FIGURES_DIR / "01_priority_distribution.png"), use_container_width=True)
-        st.info("💡 **Key Finding**: Tickets are heavily concentrated in P4 (50.2%) and P5 (36.5%). Critical P1/P2 tickets represent just 1.55% of volume, creating severe operational risk when misidentified.")
+        st.info("**Key Finding**: Tickets are heavily concentrated in P4 (50.2%) and P5 (36.5%). Critical P1/P2 tickets represent just 1.55% of volume, creating severe operational risk when misidentified.")
     with tab2:
         st.image(str(FIGURES_DIR / "02_reassignments_vs_handletime.png"), use_container_width=True)
-        st.info(r"💡 **Key Finding**: Tickets with $\ge 1$ reassignments experience a 114% increase in median handling duration (from 1,331 hours to 2,851 hours), proving that manual routing is ABC Tech's primary bottleneck.")
+        st.info(r"**Key Finding**: Tickets with $\ge 1$ reassignments experience a 114% increase in median handling duration (from 1,331 hours to 2,851 hours), proving that manual routing is ABC Tech's primary bottleneck.")
     with tab3:
         st.image(str(FIGURES_DIR / "03_incident_trend_monthly.png"), use_container_width=True)
-        st.info("💡 **Key Finding**: Ticketing surged significantly starting Q4 2013, maintaining sustained high volume of 6,000 - 8,500 tickets monthly in 2014.")
+        st.info("**Key Finding**: Ticketing surged significantly starting Q4 2013, maintaining sustained high volume of 6,000 - 8,500 tickets monthly in 2014.")
 
 # -------------------------------------------------------------------------------------------------
 # VIEW 2: PILLAR 1 — HIGH PRIORITY TRIAGE

@@ -14,7 +14,7 @@
 **Client**: ABC Tech  
 **Category**: IT Service Management (ITSM) Machine Learning  
 **Project Reference**: PM-PR-0012  
-**Final Deliverable**: [`PRCL-0012_ITSM_Machine_Learning.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/PRCL-0012_ITSM_Machine_Learning.ipynb) / [`PRCL-0012_ITSM_Machine_Learning_Improved.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/PRCL-0012_ITSM_Machine_Learning_Improved.ipynb)
+**Final Deliverable**: [`PRCL-0012_ITSM_Machine_Learning.ipynb`](PRCL-0012_ITSM_Machine_Learning.ipynb)
 
 This repository contains the finalized, audited, and self-contained machine learning capstone deliverable for **ABC Tech**. The suite addresses ITIL incident management optimization across four core business pillars, executed strictly with leak-free temporal validation, computed empirical metrics, and rigorous governance.
 
@@ -37,7 +37,6 @@ This repository contains the finalized, audited, and self-contained machine lear
 ```
 PRCL-0012/
 ├── PRCL-0012_ITSM_Machine_Learning.ipynb           # Primary Capstone Deliverable (40 cells, fully executed)
-├── PRCL-0012_ITSM_Machine_Learning_Improved.ipynb  # Synchronized Audited Deliverable
 ├── dataset_list.csv                                # Raw 46,606 ITSM incident records queried from MySQL
 ├── requirements.txt                                # Certified Python dependencies
 ├── README.md                                       # Project guide & architecture overview
@@ -62,7 +61,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Run the Final Deliverable Notebook
-Open and run all cells in [`PRCL-0012_ITSM_Machine_Learning.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/PRCL-0012_ITSM_Machine_Learning.ipynb):
+Open and run all cells in [`PRCL-0012_ITSM_Machine_Learning.ipynb`](PRCL-0012_ITSM_Machine_Learning.ipynb):
 
 ```bash
 jupyter notebook PRCL-0012_ITSM_Machine_Learning.ipynb

@@ -130,13 +130,13 @@ if sidebar_nav == "Executive Dashboard":
 
     tab1, tab2, tab3 = st.tabs(["Priority Distribution", "Reassignment Escalation", "Historical Inflow Trend"])
     with tab1:
-        st.image(str(FIGURES_DIR / "01_priority_distribution.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "01_priority_distribution.png"), width="stretch")
         st.info("**Key Finding**: Tickets are heavily concentrated in P4 (50.2%) and P5 (36.5%). Critical P1/P2 tickets represent just 1.55% of volume, creating severe operational risk when misidentified.")
     with tab2:
-        st.image(str(FIGURES_DIR / "02_reassignments_vs_handletime.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "02_reassignments_vs_handletime.png"), width="stretch")
         st.info(f"**Key Finding**: Controlled econometric OLS regression proves each bounce adds **+{p3_r_m['delay_penalty_pct']:.2f}% active handle duration** ({p3_r_m['delay_hours_saved_per_bounce']:.2f} hours/bounce, p={p3_r_m['delay_p_value']:.2e}), proving that manual routing hops are ABC Tech's primary MTTR bottleneck.")
     with tab3:
-        st.image(str(FIGURES_DIR / "03_incident_trend_monthly.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "03_incident_trend_monthly.png"), width="stretch")
         st.info("**Key Finding**: Ticketing surged significantly post-enterprise rollout in October 2013, maintaining sustained operational throughput of 6,000 - 8,500 tickets monthly in 2014.")
 
 # -------------------------------------------------------------------------------------------------
@@ -148,9 +148,9 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
 
     col_l, col_r = st.columns([1, 1])
     with col_l:
-        st.image(str(FIGURES_DIR / "05_pillar1_roc_pr_curves.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "05_pillar1_roc_pr_curves.png"), width="stretch")
     with col_r:
-        st.image(str(FIGURES_DIR / "06_pillar1_feature_importance.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "06_pillar1_feature_importance.png"), width="stretch")
 
     st.markdown("### Real-Time Incident Priority Risk Assessment")
 
@@ -235,7 +235,7 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
     st.subheader("Pillar 2 — Incident Volume & Capacity Forecasting")
     st.write("Production Ensemble (SARIMAX + Naive Persistence) with Moving-Block Bootstrapping.")
 
-    st.image(str(FIGURES_DIR / "07_pillar2_volume_forecast.png"), use_container_width=True)
+    st.image(str(FIGURES_DIR / "07_pillar2_volume_forecast.png"), width="stretch")
 
     f_col1, f_col2 = st.columns([1, 1])
     with f_col1:
@@ -255,7 +255,7 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
         mape_df = pd.DataFrame([
             {"Model": k, "Backtest MAPE": f"{v:.2f}%"} for k, v in sorted(p2_m['backtest_mape'].items(), key=lambda x: x[1])
         ])
-        st.dataframe(mape_df, use_container_width=True, hide_index=True)
+        st.dataframe(mape_df, width="stretch", hide_index=True)
 
 # -------------------------------------------------------------------------------------------------
 # VIEW 4: PILLAR 3 — AUTO-TAGGING & ROUTING
@@ -266,9 +266,9 @@ elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
 
     r_col1, r_col2 = st.columns([1, 1])
     with r_col1:
-        st.image(str(FIGURES_DIR / "09_pillar3_department_confusion_matrix.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "09_pillar3_department_confusion_matrix.png"), width="stretch")
     with r_col2:
-        st.image(str(FIGURES_DIR / "10_pillar3_priority_confusion_matrix.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "10_pillar3_priority_confusion_matrix.png"), width="stretch")
 
     st.markdown("---")
     st.markdown("### Business ROI: Recovered Engineering Capacity")
@@ -283,7 +283,7 @@ elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
         {"Realized Conversion": "50% Realized", "Effective Lift": f"{p3_r_m['roi_sensitivity_50']['effective_lift']*100:.2f}%", "Hours Saved": f"{p3_r_m['roi_sensitivity_50']['hours']:,} hrs", "Capacity Recovered": f"{p3_r_m['roi_sensitivity_50']['fte']:.2f} FTEs"},
         {"Realized Conversion": "100% Realized (Base)", "Effective Lift": f"{p3_r_m['roi_sensitivity_100']['effective_lift']*100:.2f}%", "Hours Saved": f"{p3_r_m['roi_sensitivity_100']['hours']:,} hrs", "Capacity Recovered": f"{p3_r_m['roi_sensitivity_100']['fte']:.2f} FTEs"},
     ]
-    st.dataframe(pd.DataFrame(sens_data), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(sens_data), width="stretch", hide_index=True)
 
 # -------------------------------------------------------------------------------------------------
 # VIEW 5: PILLAR 4 — ASSET RISK & RFC
@@ -292,7 +292,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.subheader("Pillar 4 — Proactive RFC Detection & Empirical Bayes Asset Risk Index")
     st.write("Rigorous leakage-free evaluation of RFC signal + Bayesian-shrunk Configuration Item (CI) Risk Index.")
 
-    st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), use_container_width=True)
+    st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), width="stretch")
 
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
     st.info(f"**Bayesian Shrinkage Filter (N >= 10)**: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with 1 incident topping raw risk lists). We filter on {p4_m['evaluated_assets_count']} active assets with at least 10 incidents and apply Empirical Bayes shrinkage (m=10.0), guaranteeing rank stability (Spearman rho = {p4_m['min_spearman_rho']:.4f}).")
@@ -308,13 +308,13 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
         'Risk_Tier': 'Risk Tier'
     }, inplace=True)
     display_df['Asset Risk Index (0-100)'] = display_df['Asset Risk Index (0-100)'].map("{:.1f}".format)
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.dataframe(display_df, width="stretch", hide_index=True)
 
     st.markdown("---")
     st.markdown("### Proactive RFC Prediction (Negative Result Audit)")
     rfc_c1, rfc_c2 = st.columns([1, 1])
     with rfc_c1:
-        st.image(str(FIGURES_DIR / "11_pillar4_rfc_roc_curve.png"), use_container_width=True)
+        st.image(str(FIGURES_DIR / "11_pillar4_rfc_roc_curve.png"), width="stretch")
     with rfc_c2:
         st.markdown(f"""
         **Scientific Integrity Audit**:

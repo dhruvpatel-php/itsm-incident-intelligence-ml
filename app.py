@@ -170,7 +170,7 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
             if prob >= threshold:
                 st.error(f"🚨 **HIGH PRIORITY ALERT (P1/P2)**\n\nProbability: **{prob*100:.1f}%** (Threshold: {threshold*100:.1f}%)")
             else:
-                st.success(f"✅ **Standard Ticket (P3 - P5)**\n\nProbability of P1/P2: **{prob*100:.1f}%**")
+                st.success(f"**Standard Ticket (P3 - P5)**\n\nProbability of P1/P2: **{prob*100:.1f}%**")
         with res_col2:
             st.metric("Champion Model", p1['model_name'])
             st.metric("Model PR-AUC (Test Holdout)", f"{p1['pr_auc']:.4f}")

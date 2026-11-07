@@ -1,6 +1,11 @@
 import sys
+import logging
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
 import pandas as pd
@@ -9,19 +14,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from src.config import CLEANED_DATA_PATH, FIGURES_DIR
+from src.config import CLEANED_DATA_PATH, FIGURES_DIR, setup_logger
+
+logger = setup_logger("EDA")
 
 def run_eda(data_path=CLEANED_DATA_PATH):
-    print(f"[EDA] Loading cleaned data from {data_path}...")
+    logger.info(f"Loading cleaned data from {data_path}...")
     df = pd.read_csv(data_path, low_memory=False)
     df['Open_DT'] = pd.to_datetime(df['Open_DT'])
-    
-    # Configure plotting style
+
     plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
-    palette = sns.color_palette("deep")
 
     # 1. Priority Distribution Plot
-    print("[EDA] Generating 01_priority_distribution.png...")
+    logger.info("Generating 01_priority_distribution.png...")
     fig, ax = plt.subplots(figsize=(8, 5))
     priority_counts = df['Priority_Clean'].value_counts().sort_index()
     colors = ['#d9534f', '#f0ad4e', '#5bc0de', '#0275d8', '#5cb85c']
@@ -29,8 +34,7 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     ax.set_title("ABC Tech ITIL Ticket Priority Distribution (P1 - P5)", fontsize=14, fontweight='bold', pad=12)
     ax.set_xlabel("Priority Level", fontsize=12, labelpad=8)
     ax.set_ylabel("Number of Incidents", fontsize=12, labelpad=8)
-    
-    # Add count and percentage labels
+
     total_valid = priority_counts.sum()
     for bar in bars:
         height = bar.get_height()
@@ -45,10 +49,9 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     plt.close(fig)
 
     # 2. Reassignments vs Resolution Time (Handle Time)
-    print("[EDA] Generating 02_reassignments_vs_handletime.png...")
+    logger.info("Generating 02_reassignments_vs_handletime.png...")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Reassignment distribution
+
     reassign_counts = df['No_of_Reassignments_Clean'].value_counts().sort_index()
     ax1.bar(reassign_counts.index[:10], reassign_counts.values[:10], color='#4575b4', edgecolor='black', alpha=0.85)
     ax1.set_title("Distribution of Ticket Reassignments (Hops 0 - 9)", fontsize=13, fontweight='bold')
@@ -56,8 +59,7 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     ax1.set_ylabel("Ticket Count", fontsize=11)
     for x, y in zip(reassign_counts.index[:10], reassign_counts.values[:10]):
         ax1.annotate(f"{y:,}", (x, y), textcoords="offset points", xytext=(0, 3), ha='center', fontsize=9)
-        
-    # Reassignment vs Median Handle Time
+
     sub_df = df[df['Handle_Time_Clean'].notnull() & (df['No_of_Reassignments_Clean'] <= 8)].copy()
     median_time = sub_df.groupby('No_of_Reassignments_Clean')['Handle_Time_Clean'].median()
     ax2.plot(median_time.index, median_time.values, marker='o', linewidth=2.5, markersize=8, color='#d73027')
@@ -65,14 +67,14 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     ax2.set_xlabel("Number of Reassignments", fontsize=11)
     ax2.set_ylabel("Median Handle Time (Hours)", fontsize=11)
     for x, y in zip(median_time.index, median_time.values):
-        ax2.annotate(f"{y:.1f}h", (x, y), textcoords="offset points", xytext=(0, 6), ha='center', fontsize=9, fontweight='bold')
+        ax2.annotate(f"{y:.2f}h", (x, y), textcoords="offset points", xytext=(0, 6), ha='center', fontsize=9, fontweight='bold')
     ax2.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
     fig.savefig(FIGURES_DIR / "02_reassignments_vs_handletime.png", dpi=300)
     plt.close(fig)
 
     # 3. Monthly Incident Volume Trend
-    print("[EDA] Generating 03_incident_trend_monthly.png...")
+    logger.info("Generating 03_incident_trend_monthly.png...")
     fig, ax = plt.subplots(figsize=(12, 5))
     df_ts = df.dropna(subset=['Open_DT']).copy()
     monthly = df_ts.set_index('Open_DT').resample('ME')['Incident_ID'].count()
@@ -91,9 +93,10 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     plt.close(fig)
 
     # 4. Department / CI_Cat Breakdown
-    print("[EDA] Generating 04_department_breakdown.png...")
+    logger.info("Generating 04_department_breakdown.png...")
     fig, ax = plt.subplots(figsize=(10, 6))
-    dept_counts = df['Department'].value_counts()
+    dept_col = 'CI_Cat' if 'CI_Cat' in df.columns else 'Department'
+    dept_counts = df[dept_col].value_counts().head(8)
     bars = ax.barh(dept_counts.index[::-1], dept_counts.values[::-1], color='#31a354', edgecolor='black', alpha=0.85)
     ax.set_title("Incident Volume by IT Service Department (CI Category)", fontsize=14, fontweight='bold', pad=12)
     ax.set_xlabel("Incident Count", fontsize=12)
@@ -109,7 +112,7 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     plt.close(fig)
 
     # 5. Closure Codes / Misconfiguration Analysis
-    print("[EDA] Generating 04b_closure_codes_root_causes.png...")
+    logger.info("Generating 04b_closure_codes_root_causes.png...")
     fig, ax = plt.subplots(figsize=(10, 6))
     closure_counts = df['Closure_Code'].value_counts().head(8)
     bars = ax.barh(closure_counts.index[::-1], closure_counts.values[::-1], color='#756bb1', edgecolor='black', alpha=0.85)
@@ -126,7 +129,7 @@ def run_eda(data_path=CLEANED_DATA_PATH):
     fig.savefig(FIGURES_DIR / "04b_closure_codes_root_causes.png", dpi=300)
     plt.close(fig)
 
-    print("[EDA] All EDA charts successfully generated and saved to 'figures/'!")
+    logger.info("All EDA charts successfully generated and saved to 'figures/'!")
 
 if __name__ == "__main__":
     run_eda()

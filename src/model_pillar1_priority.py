@@ -1,7 +1,12 @@
 import sys
 import json
+import logging
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
 import pandas as pd
@@ -10,185 +15,230 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import joblib
 
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    roc_auc_score, average_precision_score, classification_report,
-    roc_curve, precision_recall_curve, f1_score, fbeta_score, confusion_matrix
+    roc_auc_score, average_precision_score, recall_score,
+    precision_score, fbeta_score, brier_score_loss,
+    roc_curve, precision_recall_curve
 )
-import xgboost as xgb
+from sklearn.isotonic import IsotonicRegression
+from sklearn.inspection import permutation_importance
 import lightgbm as lgb
 
-from src.config import CLEANED_DATA_PATH, FIGURES_DIR, MODELS_DIR, RANDOM_STATE
-from src.feature_engineering import extract_features
+from src.config import (
+    CLEANED_DATA_PATH,
+    FIGURES_DIR,
+    MODELS_DIR,
+    RANDOM_STATE,
+    STABLE_REGIME_START,
+    setup_logger
+)
+from src.feature_engineering import build_early_warning_features
 
-def train_pillar1():
-    print("=" * 70)
-    print("PILLAR 1: HIGH PRIORITY TICKET (P1/P2) PREDICTION")
-    print("=" * 70)
-    
-    df = pd.read_csv(CLEANED_DATA_PATH, low_memory=False)
-    # Filter valid target rows
-    df_valid = df[df['Is_High_Priority'].notnull()].copy()
-    y = df_valid['Is_High_Priority'].astype(int).values
-    
-    # Train / Test Stratified Split (80/20)
-    train_idx, test_idx = train_test_split(
-        df_valid.index, test_size=0.20, random_state=RANDOM_STATE, stratify=y
+logger = setup_logger("Pillar1_Priority")
+
+def train_pillar1(df=None):
+    logger.info("=" * 70)
+    logger.info("PILLAR 1: EARLY WARNING FOR HIGH PRIORITY INCIDENTS (P1/P2)")
+    logger.info("=" * 70)
+
+    if df is None:
+        df = pd.read_csv(CLEANED_DATA_PATH, low_memory=False)
+        df['Open_DT'] = pd.to_datetime(df['Open_DT'])
+
+    # 1. Temporal split on stable operating regime
+    df_stable = df[df['Open_DT'] >= STABLE_REGIME_START].sort_values('Open_DT').reset_index(drop=True)
+    df_p1 = df_stable[df_stable['Is_High_Priority'].notnull()].copy().reset_index(drop=True)
+
+    n_total = len(df_p1)
+    n_tr = int(n_total * 0.65)
+    n_val = int(n_total * 0.15)
+    n_te = n_total - n_tr - n_val
+
+    train_df = df_p1.iloc[:n_tr].copy()
+    val_df = df_p1.iloc[n_tr:n_tr + n_val].copy()
+    test_df = df_p1.iloc[n_tr + n_val:].copy()
+
+    logger.info(f"Temporal Split: Train={len(train_df):,} ({len(train_df)/n_total*100:.1f}%), "
+                f"Val={len(val_df):,} ({len(val_df)/n_total*100:.1f}%), "
+                f"Test={len(test_df):,} ({len(test_df)/n_total*100:.1f}%)")
+
+    # 2. Build feature matrices strictly avoiding post-triage fields
+    ci_freq = train_df['CI_Name'].value_counts().to_dict()
+    wbs_freq = train_df['WBS'].value_counts().to_dict()
+
+    X_tr = build_early_warning_features(train_df, ci_freq, wbs_freq)
+    train_cols = list(X_tr.columns)
+    X_val = build_early_warning_features(val_df, ci_freq, wbs_freq, train_cols=train_cols)
+    X_te = build_early_warning_features(test_df, ci_freq, wbs_freq, train_cols=train_cols)
+
+    y_tr = train_df['Is_High_Priority'].astype(int).values
+    y_val = val_df['Is_High_Priority'].astype(int).values
+    y_te = test_df['Is_High_Priority'].astype(int).values
+
+    logger.info(f"High-Priority Prevalence: Train={y_tr.mean()*100:.3f}%, Val={y_val.mean()*100:.3f}%, Test={y_te.mean()*100:.3f}%")
+
+    # 3. Fit Champion Model: Cost-Weighted LightGBM (Tuned hyperparams from audited notebook)
+    lgb_model = lgb.LGBMClassifier(
+        n_estimators=80, max_depth=3, num_leaves=31, learning_rate=0.05,
+        class_weight='balanced', random_state=RANDOM_STATE, verbose=-1, n_jobs=-1
     )
-    
-    df_train = df_valid.loc[train_idx]
-    df_test = df_valid.loc[test_idx]
-    
-    y_train = df_train['Is_High_Priority'].astype(int).values
-    y_test = df_test['Is_High_Priority'].astype(int).values
-    
-    print(f"[Pillar 1] Training Samples: {len(y_train)} (Positives: {y_train.sum()} - {y_train.mean()*100:.2f}%)")
-    print(f"[Pillar 1] Test Samples:     {len(y_test)} (Positives: {y_test.sum()} - {y_test.mean()*100:.2f}%)")
-    
-    # Feature extraction (fit on train only)
-    X_train, encoders = extract_features(df_train, is_train=True)
-    X_test = extract_features(df_test, is_train=False, encoders=encoders)
-    
-    feature_names = list(X_train.columns)
-    
-    # Class imbalance weight ratio
-    neg_count = (y_train == 0).sum()
-    pos_count = (y_train == 1).sum()
-    scale_pos_weight = neg_count / pos_count
-    
-    # Models dictionary
-    models = {
-        "Logistic Regression (Balanced)": LogisticRegression(
-            class_weight='balanced', max_iter=1000, random_state=RANDOM_STATE
-        ),
-        "Random Forest (Balanced)": RandomForestClassifier(
-            n_estimators=150, max_depth=12, class_weight='balanced_subsample',
-            random_state=RANDOM_STATE, n_jobs=-1
-        ),
-        "LightGBM (Weighted)": lgb.LGBMClassifier(
-            n_estimators=150, max_depth=6, scale_pos_weight=scale_pos_weight,
-            random_state=RANDOM_STATE, verbose=-1, n_jobs=-1
-        ),
-        "XGBoost (Weighted)": xgb.XGBClassifier(
-            n_estimators=150, max_depth=5, scale_pos_weight=scale_pos_weight,
-            learning_rate=0.05, random_state=RANDOM_STATE, eval_metric='logloss', n_jobs=-1
-        )
+    lgb_model.fit(X_tr, y_tr)
+
+    # 4. Probability Calibration on Validation Set
+    val_probs = lgb_model.predict_proba(X_val)[:, 1]
+    iso = IsotonicRegression(out_of_bounds='clip')
+    iso.fit(val_probs, y_val)
+
+    # 5. Tune Threshold on Validation Set strictly (F2-Score optimization)
+    threshold_grid = np.linspace(0.01, 0.99, 100)
+    f2_val = [fbeta_score(y_val, (val_probs >= t).astype(int), beta=2.0, zero_division=0) for t in threshold_grid]
+    best_idx = int(np.argmax(f2_val))
+    opt_threshold = float(threshold_grid[best_idx])
+    logger.info(f"Optimal Decision Threshold (Validation F2): {opt_threshold:.3f}")
+
+    # 6. Single Holdout Test Evaluation
+    test_probs = lgb_model.predict_proba(X_te)[:, 1]
+    test_preds = (test_probs >= opt_threshold).astype(int)
+
+    test_roc = float(roc_auc_score(y_te, test_probs))
+    test_pr = float(average_precision_score(y_te, test_probs))
+    test_rec = float(recall_score(y_te, test_preds))
+    test_prec = float(precision_score(y_te, test_preds, zero_division=0))
+    test_f2 = float(fbeta_score(y_te, test_preds, beta=2.0))
+    test_prev = float(y_te.mean())
+    test_lift = float(test_pr / test_prev)
+
+    # 1,000-fold Bootstrap Confidence Intervals
+    np.random.seed(RANDOM_STATE)
+    boot_prs = []
+    boot_recs = []
+    for _ in range(1000):
+        b_idx = np.random.randint(0, len(y_te), len(y_te))
+        y_b = y_te[b_idx]
+        if len(np.unique(y_b)) < 2:
+            continue
+        boot_prs.append(average_precision_score(y_b, test_probs[b_idx]))
+        boot_recs.append(recall_score(y_b, test_preds[b_idx], zero_division=0))
+
+    pr_ci_low, pr_ci_high = float(np.percentile(boot_prs, 2.5)), float(np.percentile(boot_prs, 97.5))
+    rec_ci_low, rec_ci_high = float(np.percentile(boot_recs, 2.5)), float(np.percentile(boot_recs, 97.5))
+
+    # Brier Scores
+    brier_prev = float(brier_score_loss(y_te, np.repeat(y_tr.mean(), len(y_te))))
+    cal_test_probs = iso.predict(test_probs)
+    brier_cal = float(brier_score_loss(y_te, cal_test_probs))
+    brier_err_reduc = float((brier_prev - brier_cal) / brier_prev * 100.0)
+
+    # 7. Seen vs Unseen Asset Generalization Audit
+    seen_mask = test_df['CI_Name'].isin(train_df['CI_Name'].unique()).values
+    y_seen, p_seen, pred_seen = y_te[seen_mask], test_probs[seen_mask], test_preds[seen_mask]
+    y_unseen, p_unseen, pred_unseen = y_te[~seen_mask], test_probs[~seen_mask], test_preds[~seen_mask]
+
+    seen_stats = {
+        "n": int(len(y_seen)),
+        "pct": float(len(y_seen) / len(y_te) * 100.0),
+        "prevalence": float(y_seen.mean()),
+        "pr_auc": float(average_precision_score(y_seen, p_seen)),
+        "recall": float(recall_score(y_seen, pred_seen, zero_division=0)),
+        "roc_auc": float(roc_auc_score(y_seen, p_seen))
     }
-    
-    results = {}
-    best_pr_auc = 0
-    best_model_name = None
-    best_model_obj = None
-    
-    fig, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(15, 6))
-    
-    for name, model in models.items():
-        print(f"\n[Training] {name}...")
-        model.fit(X_train, y_train)
-        y_prob = model.predict_proba(X_test)[:, 1]
-        
-        roc_auc = roc_auc_score(y_test, y_prob)
-        pr_auc = average_precision_score(y_test, y_prob)
-        
-        results[name] = {
-            "ROC-AUC": roc_auc,
-            "PR-AUC": pr_auc,
-            "y_prob": y_prob,
-            "model": model
-        }
-        print(f"   --> ROC-AUC: {roc_auc:.4f} | PR-AUC: {pr_auc:.4f}")
-        
-        # Plot ROC curve
-        fpr, tpr, _ = roc_curve(y_test, y_prob)
-        ax_roc.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.3f})", lw=2)
-        
-        # Plot PR curve
-        prec, rec, _ = precision_recall_curve(y_test, y_prob)
-        ax_pr.plot(rec, prec, label=f"{name} (PR-AUC = {pr_auc:.3f})", lw=2)
-        
-        if pr_auc > best_pr_auc:
-            best_pr_auc = pr_auc
-            best_model_name = name
-            best_model_obj = model
+    unseen_stats = {
+        "n": int(len(y_unseen)),
+        "pct": float(len(y_unseen) / len(y_te) * 100.0),
+        "prevalence": float(y_unseen.mean()),
+        "pr_auc": float(average_precision_score(y_unseen, p_unseen)),
+        "recall": float(recall_score(y_unseen, pred_unseen, zero_division=0)),
+        "roc_auc": float(roc_auc_score(y_unseen, p_unseen))
+    }
 
-    # Finalize ROC Plot
-    ax_roc.plot([0, 1], [0, 1], 'k--', lw=1.5, alpha=0.7)
-    ax_roc.set_title("ROC Curves - High Priority Ticket Prediction", fontsize=13, fontweight='bold')
-    ax_roc.set_xlabel("False Positive Rate", fontsize=11)
-    ax_roc.set_ylabel("True Positive Rate (Recall)", fontsize=11)
-    ax_roc.legend(loc="lower right", fontsize=9)
-    ax_roc.grid(True, linestyle='--', alpha=0.5)
+    logger.info(f"Test ROC-AUC: {test_roc:.4f} | Test PR-AUC: {test_pr:.4f} [95% CI: {pr_ci_low:.4f}-{pr_ci_high:.4f}]")
+    logger.info(f"Test Recall @ F2 Thresh: {test_rec*100:.2f}% [95% CI: {rec_ci_low*100:.2f}%-{rec_ci_high*100:.2f}%]")
+    logger.info(f"Statistical Lift: {test_lift:.1f}x over prevalence baseline ({test_prev*100:.3f}%)")
+    logger.info(f"Seen Assets PR-AUC={seen_stats['pr_auc']:.4f}, Recall={seen_stats['recall']*100:.1f}%")
+    logger.info(f"Unseen Assets PR-AUC={unseen_stats['pr_auc']:.4f}, Recall={unseen_stats['recall']*100:.1f}%")
 
-    # Finalize PR Plot
-    ax_pr.axhline(y=pos_count / len(y_train), color='k', linestyle='--', label=f"Baseline ({pos_count/len(y_train):.3f})")
-    ax_pr.set_title("Precision-Recall Curves - Severe Imbalance Evaluation", fontsize=13, fontweight='bold')
-    ax_pr.set_xlabel("Recall (P1/P2 Coverage)", fontsize=11)
-    ax_pr.set_ylabel("Precision", fontsize=11)
-    ax_pr.legend(loc="upper right", fontsize=9)
-    ax_pr.grid(True, linestyle='--', alpha=0.5)
+    # 8. Visualizations
+    fpr, tpr, _ = roc_curve(y_te, test_probs)
+    prec_c, rec_c, _ = precision_recall_curve(y_te, test_probs)
 
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5.5))
+    axes[0].plot(fpr, tpr, color='#2563eb', linewidth=2, label=f'LightGBM Early Warning (ROC-AUC = {test_roc:.4f})')
+    axes[0].plot([0, 1], [0, 1], linestyle='--', color='gray', label='No-Skill (0.5000)')
+    axes[0].set_title("Pillar 1: Prospective ROC Curve (Holdout Test Set)", fontsize=12, fontweight='bold')
+    axes[0].set_xlabel("False Positive Rate", fontsize=10)
+    axes[0].set_ylabel("True Positive Rate (Recall)", fontsize=10)
+    axes[0].grid(True, linestyle='--', alpha=0.5)
+    axes[0].legend(loc='lower right')
+
+    axes[1].plot(rec_c, prec_c, color='#16a34a', linewidth=2, label=f'LightGBM (PR-AUC = {test_pr:.4f})')
+    axes[1].axhline(test_prev, linestyle='--', color='gray', label=f'No-Skill Prevalence ({test_prev*100:.2f}%)')
+    axes[1].scatter([test_rec], [test_prec], color='#dc2626', s=80, zorder=5, label=f'Operating Point @ {opt_threshold:.3f}')
+    axes[1].set_title(f"Pillar 1: Precision-Recall Curve (Lift = {test_lift:.1f}x)", fontsize=12, fontweight='bold')
+    axes[1].set_xlabel("Recall", fontsize=10)
+    axes[1].set_ylabel("Precision", fontsize=10)
+    axes[1].grid(True, linestyle='--', alpha=0.5)
+    axes[1].legend(loc='upper right')
     plt.tight_layout()
     fig.savefig(FIGURES_DIR / "05_pillar1_roc_pr_curves.png", dpi=300)
     plt.close(fig)
 
-    print(f"\n[Pillar 1 Champion Model]: {best_model_name} (PR-AUC: {best_pr_auc:.4f})")
-    best_probs = results[best_model_name]["y_prob"]
-    
-    # Threshold Tuning for F2-Score (Prioritize capturing critical outages)
-    thresholds = np.linspace(0.1, 0.9, 81)
-    f2_scores = [fbeta_score(y_test, (best_probs >= t).astype(int), beta=2.0, zero_division=0) for t in thresholds]
-    best_idx = np.argmax(f2_scores)
-    best_threshold = thresholds[best_idx]
-    best_f2 = f2_scores[best_idx]
-    
-    y_pred_opt = (best_probs >= best_threshold).astype(int)
-    print(f"\n[Optimal Decision Threshold]: {best_threshold:.3f}")
-    print(f"Optimal F2-Score (Recall-focused): {best_f2:.4f}")
-    print("\nClassification Report at Optimal Threshold:")
-    print(classification_report(y_test, y_pred_opt, target_names=["Standard (P3-P5)", "High Priority (P1/P2)"]))
-    
-    cm = confusion_matrix(y_test, y_pred_opt)
-    print("Confusion Matrix:")
-    print(cm)
-    
-    # Feature Importance Plot
-    print("\n[Pillar 1] Generating Feature Importance chart...")
-    if hasattr(best_model_obj, "feature_importances_"):
-        importances = best_model_obj.feature_importances_
-    elif hasattr(best_model_obj, "coef_"):
-        importances = np.abs(best_model_obj.coef_[0])
-    else:
-        importances = np.ones(len(feature_names))
-        
-    feat_df = pd.DataFrame({"Feature": feature_names, "Importance": importances}).sort_values(by="Importance", ascending=True).tail(15)
-    
-    fig, ax = plt.subplots(figsize=(10, 6))
-    bars = ax.barh(feat_df['Feature'], feat_df['Importance'], color='#1f77b4', edgecolor='black', alpha=0.85)
-    ax.set_title(f"Top 15 Predictive Features - {best_model_name}", fontsize=13, fontweight='bold', pad=12)
-    ax.set_xlabel("Feature Importance Score", fontsize=11)
+    # Permutation feature importance
+    perm = permutation_importance(lgb_model, X_te, y_te, scoring='average_precision', n_repeats=5, random_state=RANDOM_STATE, n_jobs=-1)
+    feat_series = pd.Series(perm.importances_mean, index=train_cols).sort_values(ascending=True).tail(10)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    feat_series.plot(kind='barh', ax=ax, color='#2563eb', edgecolor='black', alpha=0.85)
+    ax.set_title("Pillar 1: Out-of-Sample Permutation Feature Importance (PR-AUC Loss)", fontsize=12, fontweight='bold')
+    ax.set_xlabel("Average PR-AUC Decrease when Feature Shuffled", fontsize=10)
     plt.tight_layout()
     fig.savefig(FIGURES_DIR / "06_pillar1_feature_importance.png", dpi=300)
     plt.close(fig)
 
-    # Save Champion Model, Encoders, and Optimal Threshold
+    # 9. Save Artifacts & Metrics
+    metrics = {
+        "model_name": "LightGBM (Cost-Weighted)",
+        "test_roc_auc": round(test_roc, 4),
+        "test_pr_auc": round(test_pr, 4),
+        "test_pr_auc_ci_low": round(pr_ci_low, 4),
+        "test_pr_auc_ci_high": round(pr_ci_high, 4),
+        "prevalence_baseline": round(test_prev, 5),
+        "statistical_lift": round(test_lift, 1),
+        "validation_threshold": round(opt_threshold, 3),
+        "test_recall": round(test_rec, 4),
+        "test_recall_ci_low": round(rec_ci_low, 4),
+        "test_recall_ci_high": round(rec_ci_high, 4),
+        "test_precision": round(test_prec, 4),
+        "test_f2_score": round(test_f2, 4),
+        "brier_calibrated": round(brier_cal, 5),
+        "brier_prevalence": round(brier_prev, 5),
+        "brier_error_reduction_pct": round(brier_err_reduc, 1),
+        "seen_assets": seen_stats,
+        "unseen_assets": unseen_stats
+    }
+
     model_payload = {
-        "model": best_model_obj,
-        "model_name": best_model_name,
-        "encoders": encoders,
-        "feature_names": feature_names,
-        "threshold": float(best_threshold),
-        "pr_auc": float(best_pr_auc),
-        "roc_auc": float(results[best_model_name]["ROC-AUC"])
+        "model": lgb_model,
+        "calibrated_model": iso,
+        "model_name": "LightGBM (Cost-Weighted)",
+        "threshold": opt_threshold,
+        "ci_freq": ci_freq,
+        "wbs_freq": wbs_freq,
+        "train_cols": train_cols,
+        "metrics": metrics,
+        "provenance": {
+            "training_samples": len(train_df),
+            "validation_samples": len(val_df),
+            "test_samples": len(test_df),
+            "random_state": RANDOM_STATE
+        }
     }
     joblib.dump(model_payload, MODELS_DIR / "pillar1_high_priority_model.joblib")
-    
+
     with open(MODELS_DIR / "pillar1_threshold.json", "w") as f:
-        json.dump({"best_model": best_model_name, "threshold": float(best_threshold), "f2_score": float(best_f2)}, f, indent=4)
-        
-    print("[Pillar 1] Champion model and artifacts saved to 'models/' successfully!")
-    return results
+        json.dump({"threshold": opt_threshold, "f2_score": test_f2, "pr_auc": test_pr}, f, indent=4)
+
+    logger.info("Pillar 1 model, threshold and plots successfully saved.")
+    return metrics
 
 if __name__ == "__main__":
     train_pillar1()

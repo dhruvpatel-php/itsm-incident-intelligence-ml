@@ -1,121 +1,150 @@
 import re
 import sys
+import logging
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
 import pandas as pd
-from src.config import RAW_DATA_PATH, CLEANED_DATA_PATH, PRIORITY_MATRIX
+from src.config import (
+    RAW_DATA_PATH,
+    CLEANED_DATA_PATH,
+    PRIORITY_MATRIX,
+    setup_logger
+)
+
+logger = setup_logger("DataLoader")
 
 def parse_handle_time(val):
     """
-    Reconstructs handle time from corrupted/Indian number formatted string.
-    e.g. '3,87,16,91,111' -> 3871.691111 hours
-         '0,862777778'    -> 0.862778 hours
+    Validated handle time parser where the first comma serves as decimal point,
+    and any subsequent commas are stripped (regional Indian numeral format export).
+    e.g. '3,87,16,91,111' -> 3.871691111 hours
+         '0,862777778'    -> 0.862777778 hours
          '2,04'           -> 2.04 hours
+         '15.5'           -> 15.5 hours
     """
     if pd.isnull(val):
         return np.nan
     val = str(val).strip()
-    if not val or val == 'nan':
+    if not val or val.lower() == 'nan':
         return np.nan
-    if val.startswith('0,'):
-        return float('0.' + val[2:].replace(',', ''))
-    if ',' not in val:
+    if ',' in val:
+        parts = val.split(',')
+        int_part = parts[0].strip()
+        dec_part = ''.join(parts[1:]).strip()
         try:
-            return float(val)
+            return float(f"{int_part}.{dec_part}")
         except ValueError:
-            pass
-    if re.match(r'^\d+,\d{1,2}$', val):
-        return float(val.replace(',', '.'))
-    
-    digits = re.sub(r'[^\d]', '', val)
-    if len(digits) >= 7:
-        int_part = digits[:-6]
-        dec_part = digits[-6:]
-        return float(f"{int_part}.{dec_part}")
-    elif len(digits) > 0:
-        return float(digits)
-    return np.nan
+            return np.nan
+    try:
+        return float(val)
+    except ValueError:
+        return np.nan
 
-def load_and_clean_data(raw_path=RAW_DATA_PATH, save_cleaned=True):
-    print(f"[DataLoader] Reading raw dataset from {raw_path}...")
+def load_and_clean_data(raw_path=RAW_DATA_PATH, save_cleaned=True, return_metrics=False):
+    logger.info(f"Loading raw dataset from {raw_path}...")
     df = pd.read_csv(raw_path, low_memory=False)
-    initial_rows, initial_cols = df.shape
-    print(f"[DataLoader] Raw shape: {initial_rows} rows x {initial_cols} columns")
+    n_rows, n_cols = df.shape
+    logger.info(f"Raw shape: {n_rows:,} incidents x {n_cols} attributes.")
 
-    # 1. Standardize text strings
-    for col in ['CI_Name', 'CI_Cat', 'CI_Subcat', 'WBS', 'Incident_ID', 'Category', 'Closure_Code', 'KB_number']:
+    # 1. Standardize string fields
+    str_cols = ['CI_Name', 'CI_Cat', 'CI_Subcat', 'WBS', 'Incident_ID', 'Category', 'Closure_Code', 'KB_number']
+    for col in str_cols:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
             df[col] = df[col].replace({'nan': np.nan, 'None': np.nan, '': np.nan})
 
-    # 2. Parse Datetime fields
-    print("[DataLoader] Parsing datetime fields...")
+    # 2. Datetime parsing
     df['Open_DT'] = pd.to_datetime(df['Open_Time'], format='%d-%m-%Y %H:%M', errors='coerce')
     df['Resolved_DT'] = pd.to_datetime(df['Resolved_Time'], format='%d-%m-%Y %H:%M', errors='coerce')
     df['Close_DT'] = pd.to_datetime(df['Close_Time'], format='%d-%m-%Y %H:%M', errors='coerce')
     df['Reopen_DT'] = pd.to_datetime(df['Reopen_Time'], format='%d-%m-%Y %H:%M', errors='coerce')
 
-    # 3. Clean Handle Time
-    print("[DataLoader] Cleaning Handle_Time_hrs...")
+    # 3. Handle Time and Calendar Duration
     df['Handle_Time_Clean'] = df['Handle_Time_hrs'].apply(parse_handle_time)
-
-    # Calculate actual calendar duration in hours as benchmark
     df['Calendar_Duration_hrs'] = (df['Close_DT'] - df['Open_DT']).dt.total_seconds() / 3600.0
 
-    # 4. Clean Impact & Urgency
-    print("[DataLoader] Processing Impact, Urgency, and Priority...")
+    # 4. Impact, Urgency and Priority (Deterministic ITIL Matrix)
     df['Impact_Clean'] = df['Impact'].astype(str).str.strip()
     df['Urgency_Clean'] = df['Urgency'].astype(str).str.extract(r'(\d)')[0].fillna(np.nan)
     df['Urgency_Num'] = pd.to_numeric(df['Urgency_Clean'], errors='coerce')
     df['Impact_Num'] = pd.to_numeric(df['Impact_Clean'], errors='coerce')
 
-    # Impute missing Priority using Priority Matrix where possible
     def get_priority(row):
         if pd.notnull(row['Priority']):
-            return int(row['Priority'])
+            try:
+                return int(row['Priority'])
+            except (ValueError, TypeError):
+                pass
         imp, urg = row['Impact_Num'], row['Urgency_Num']
         if pd.notnull(imp) and pd.notnull(urg):
             return PRIORITY_MATRIX.get((int(imp), int(urg)), np.nan)
         return np.nan
 
     df['Priority_Clean'] = df.apply(get_priority, axis=1)
+    df['Is_High_Priority'] = df['Priority_Clean'].apply(
+        lambda p: 1 if p in [1, 2] else (0 if pd.notnull(p) else np.nan)
+    )
 
-    # 5. Define Targets for the 4 Business Pillars
-    # Pillar 1 Target: High Priority Ticket (P1 / P2)
-    df['Is_High_Priority'] = df['Priority_Clean'].apply(lambda p: 1 if p in [1, 2] else (0 if pd.notnull(p) else np.nan))
+    # 5. Targets and Operational Features
+    df['Has_RFC'] = (
+        (df['No_of_Related_Changes'] > 0) |
+        (df['Related_Change'].notnull() & (df['Related_Change'] != ''))
+    ).astype(int)
 
-    # Pillar 3 Target: Department (Consolidate low-frequency CI_Cat)
-    top_departments = ['application', 'subapplication', 'computer', 'storage', 'hardware', 'software', 'database', 'displaydevice', 'officeelectronics', 'networkcomponents']
-    df['Department'] = df['CI_Cat'].apply(lambda x: x if x in top_departments else ('Other' if pd.notnull(x) else 'Unknown'))
+    df['No_of_Reassignments_Clean'] = pd.to_numeric(df['No_of_Reassignments'], errors='coerce').fillna(0).astype(int)
 
-    # Pillar 4 Target: RFC (Request for Change)
-    df['Has_RFC'] = ((df['No_of_Related_Changes'] > 0) | (df['Related_Change'].notnull() & (df['Related_Change'] != '')) | (df['Category'] == 'request for change')).astype(int)
-
-    # Reopening and related interactions
-    df['Has_Reopened'] = df['Reopen_DT'].notnull().astype(int)
-    df['No_of_Reassignments_Clean'] = df['No_of_Reassignments'].fillna(0).astype(int)
-    df['No_of_Related_Interactions_Clean'] = df['No_of_Related_Interactions'].fillna(0).astype(int)
-    df['No_of_Related_Incidents_Clean'] = df['No_of_Related_Incidents'].fillna(0).astype(int)
+    # Department consolidation (Top 5 + other_infrastructure)
+    df['Department'] = df['CI_Cat']
+    top_depts = ['application', 'subapplication', 'computer', 'storage', 'hardware']
+    df['Dept_Consolidated'] = df['CI_Cat'].apply(
+        lambda x: x if x in top_depts else ('other_infrastructure' if pd.notnull(x) else 'other_infrastructure')
+    )
 
     # Temporal feature engineering
-    df['Open_Year'] = df['Open_DT'].dt.year
-    df['Open_Month'] = df['Open_DT'].dt.month
-    df['Open_Quarter'] = df['Open_DT'].dt.to_period('Q').astype(str)
-    df['Open_DayOfWeek'] = df['Open_DT'].dt.day_of_week # 0=Mon, 6=Sun
     df['Open_Hour'] = df['Open_DT'].dt.hour
-    df['Open_DayOfMonth'] = df['Open_DT'].dt.day
-    df['Is_Weekend'] = df['Open_DayOfWeek'].apply(lambda d: 1 if d in [5, 6] else 0)
+    df['Open_DayOfWeek'] = df['Open_DT'].dt.day_of_week
+    df['Open_Month'] = df['Open_DT'].dt.month
+    df['Is_Weekend'] = df['Open_DayOfWeek'].isin([5, 6]).astype(int)
 
-    print(f"[DataLoader] High Priority Tickets: {df['Is_High_Priority'].sum()} / {df['Is_High_Priority'].count()} ({(df['Is_High_Priority'].mean()*100):.2f}%)")
-    print(f"[DataLoader] Tickets requiring RFC: {df['Has_RFC'].sum()} / {len(df)} ({(df['Has_RFC'].mean()*100):.2f}%)")
+    # 6. Verification Metrics
+    ht_v = df['Handle_Time_Clean'].dropna()
+    cal_v = df['Calendar_Duration_hrs'].dropna()
+    sub_paired = df[['Handle_Time_Clean', 'Calendar_Duration_hrs']].dropna()
+    pct_ht_exceeds_cal = float((sub_paired['Handle_Time_Clean'] > sub_paired['Calendar_Duration_hrs']).mean() * 100.0)
+    r_pearson = float(sub_paired.corr().iloc[0, 1])
+    r_spearman = float(sub_paired.corr(method='spearman').iloc[0, 1])
+
+    logger.info("=== HANDLE TIME VALIDATION ===")
+    logger.info(f"Active Handle Time (hours) : Median = {ht_v.median():.2f}h, Mean = {ht_v.mean():.2f}h, 75th = {ht_v.quantile(0.75):.2f}h")
+    logger.info(f"Calendar Duration (hours)  : Median = {cal_v.median():.2f}h, Mean = {cal_v.mean():.2f}h")
+    logger.info(f"Handle > Calendar Rate     : {pct_ht_exceeds_cal:.1f}%")
+    logger.info(f"Correlation (Pearson/Spearman) : {r_pearson:.4f} / {r_spearman:.4f}")
+
+    dl_metrics = {
+        "total_rows": int(n_rows),
+        "total_columns": int(n_cols),
+        "handle_time_median_hours": round(float(ht_v.median()), 6),
+        "handle_time_mean_hours": round(float(ht_v.mean()), 4),
+        "handle_time_p75_hours": round(float(ht_v.quantile(0.75)), 4),
+        "handle_exceeds_calendar_pct": round(float(pct_ht_exceeds_cal), 2),
+        "pearson_r": round(float(r_pearson), 4),
+        "spearman_rho": round(float(r_spearman), 4),
+        "calendar_duration_median_hours": round(float(cal_v.median()), 2)
+    }
 
     if save_cleaned:
-        print(f"[DataLoader] Saving cleaned data to {CLEANED_DATA_PATH}...")
+        logger.info(f"Saving cleaned dataset to {CLEANED_DATA_PATH}...")
         df.to_csv(CLEANED_DATA_PATH, index=False)
-        print("[DataLoader] Successfully saved!")
+        logger.info("Cleaned dataset successfully saved.")
 
+    if return_metrics:
+        return df, dl_metrics
     return df
 
 if __name__ == "__main__":

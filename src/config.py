@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from pathlib import Path
 
 # Base Paths
@@ -10,7 +11,6 @@ if str(PROJECT_ROOT) not in sys.path:
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_PATH = DATA_DIR / "raw" / "dataset_list.csv"
 if not RAW_DATA_PATH.exists():
-    # Fallback to project root if not in data/raw
     RAW_DATA_PATH = PROJECT_ROOT / "dataset_list.csv"
 
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
@@ -20,16 +20,21 @@ QUARTERLY_VOLUME_PATH = PROCESSED_DATA_DIR / "quarterly_incident_volume.csv"
 
 FIGURES_DIR = PROJECT_ROOT / "figures"
 MODELS_DIR = PROJECT_ROOT / "models"
+REPORTS_DIR = PROJECT_ROOT / "reports"
 
-for p in [PROCESSED_DATA_DIR, FIGURES_DIR, MODELS_DIR]:
+for p in [PROCESSED_DATA_DIR, FIGURES_DIR, MODELS_DIR, REPORTS_DIR]:
     p.mkdir(parents=True, exist_ok=True)
 
-# Set Matplotlib cache dir to prevent warnings
-os.environ["MPLCONFIGDIR"] = os.environ.get("TEMP", str(PROJECT_ROOT / ".cache"))
+# Matplotlib cache setup
+os.environ["MPLCONFIGDIR"] = os.environ.get("TEMP", str(PROJECT_ROOT / ".matplotlib_cache"))
 
+# Central Deterministic Seed
 RANDOM_STATE = 42
 
-# Official ITIL Priority Matrix (Urgency vs Impact)
+# Stable Regime Date Cutoff (Post-Rollout Enterprise Cutover)
+STABLE_REGIME_START = "2013-10-01"
+
+# Official ITIL Priority Matrix (Impact, Urgency) -> Priority
 PRIORITY_MATRIX = {
     (1, 1): 1, (1, 2): 2, (1, 3): 3, (1, 4): 3, (1, 5): 3,
     (2, 1): 2, (2, 2): 2, (2, 3): 2, (2, 4): 3, (2, 5): 4,
@@ -38,5 +43,16 @@ PRIORITY_MATRIX = {
     (5, 1): 3, (5, 2): 3, (5, 3): 4, (5, 4): 4, (5, 5): 5,
 }
 
-# Column Definitions
-DROP_COLUMNS = ["Alert_Status", "Status"] # Alert_Status is single-value ('closed'); Status is 99.98% 'Closed'
+# Standardized Logging Setup
+def setup_logger(name="ITSM_Pipeline"):
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler(sys.stdout)
+        formatter = logging.Formatter(
+            fmt="[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    return logger

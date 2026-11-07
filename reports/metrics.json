@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "pipeline_name": "ABC Tech ITSM Machine Learning Suite",
+    "execution_timestamp": "2026-11-07T21:07:40.282907",
+    "git_commit": "731213b1ee9e7396b3a4117e7542a3d7e70e3f86",
+    "python_version": "3.14.7",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "library_versions": {
+      "pandas": "3.1.1",
+      "numpy": "2.5.4",
+      "scikit_learn": "1.9.1",
+      "lightgbm": "4.7.0",
+      "statsmodels": "0.15.0"
+    },
+    "raw_data_sha256": "6185ec13fdb0f6e4873cc94e18b3db854b685cb18cff85990ba8bc6a36b3e692"
+  },
+  "data_loader": {
+    "total_rows": 46606,
+    "total_columns": 25,
+    "handle_time_median_hours": 1.951111,
+    "handle_time_mean_hours": 4.2461,
+    "handle_time_p75_hours": 4.3689,
+    "handle_exceeds_calendar_pct": 21.7,
+    "pearson_r": 0.1168,
+    "spearman_rho": 0.5684,
+    "calendar_duration_median_hours": 18.4
+  },
+  "pillar1_early_warning": {
+    "model_name": "LightGBM (Cost-Weighted)",
+    "test_roc_auc": 0.9148,
+    "test_pr_auc": 0.2615,
+    "test_pr_auc_ci_low": 0.1989,
+    "test_pr_auc_ci_high": 0.3503,
+    "prevalence_baseline": 0.01224,
+    "statistical_lift": 21.4,
+    "validation_threshold": 0.713,
+    "test_recall": 0.5093,
+    "test_recall_ci_low": 0.422,
+    "test_recall_ci_high": 0.6036,
+    "test_precision": 0.3873,
+    "test_f2_score": 0.4791,
+    "brier_calibrated": 0.01014,
+    "brier_prevalence": 0.01212,
+    "brier_error_reduction_pct": 16.3,
+    "seen_assets": {
+      "n": 8245,
+      "pct": 93.43834995466909,
+      "prevalence": 0.008004851425106124,
+      "pr_auc": 0.22544290178733287,
+      "recall": 0.3484848484848485,
+      "roc_auc": 0.887447342973691
+    },
+    "unseen_assets": {
+      "n": 579,
+      "pct": 6.561650045330916,
+      "prevalence": 0.07253886010362694,
+      "pr_auc": 0.331684880905893,
+      "recall": 0.7619047619047619,
+      "roc_auc": 0.8949410304158907
+    }
+  },
+  "pillar2_forecasting": {
+    "stable_regime_weeks": 26,
+    "backtest_mape": {
+      "Naive": 12.12137,
+      "Ensemble": 12.648016,
+      "SARIMAX": 13.174663,
+      "Holt_Winters": 15.772635,
+      "Seasonal_Naive": 20.169581
+    },
+    "q1_2014_actual": 21979,
+    "future_39w_base": 50735,
+    "base_vol_2014": 72714,
+    "low_vol_2014": 67163,
+    "high_vol_2014": 76519,
+    "uncertainty_half_width": 4678,
+    "scenario_2015_plus5pct": 76349
+  },
+  "pillar3_priority": {
+    "verified_tickets": 45226,
+    "deterministic_match_rate": 1.0,
+    "discrepancies": 0,
+    "ns_tickets": 1380,
+    "imputation_cv_accuracy": 0.9851,
+    "imputation_macro_f1": 0.8479,
+    "imputed_impact_counts": {
+      "1": 939,
+      "5": 269,
+      "4": 171,
+      "3": 1
+    },
+    "imputed_priority_counts": {
+      "3": 1088,
+      "4": 292
+    },
+    "champion_p3_share": 0.788,
+    "champion_p4_share": 0.212,
+    "bootstrap_p3_range": [
+      9.9,
+      96.7
+    ],
+    "bootstrap_p4_range": [
+      3.3,
+      90.1
+    ],
+    "covariate_shift_ns_urgency3": 0.977,
+    "covariate_shift_known_urgency3": 0.115,
+    "flagged_human_review_count": 269,
+    "flagged_human_review_pct": 19.5
+  },
+  "pillar3_routing": {
+    "majority_baseline": 0.6877,
+    "variant_d_unweighted_accuracy": 0.8066,
+    "variant_d_unweighted_balanced_acc": 0.5942,
+    "variant_d_unweighted_lift": 0.1189,
+    "variant_d_balanced_accuracy": 0.7037,
+    "variant_d_balanced_balanced_acc": 0.8057,
+    "variant_d_balanced_lift": 0.0159,
+    "variant_c_accuracy": 0.6873,
+    "variant_b_accuracy": 0.9344,
+    "variant_a_accuracy": 0.9673,
+    "wbs_unique_share": 74.63,
+    "wbs_unique_ticket_share": 37.48,
+    "delay_beta": 0.0715,
+    "delay_p_value": 1.2239870489223642e-200,
+    "delay_penalty_pct": 7.41,
+    "delay_hours_saved_per_bounce": 0.14,
+    "delay_hours_low": 0.06,
+    "delay_hours_high": 0.35,
+    "annual_hours_saved_base": 514,
+    "annual_fte_saved_base": 0.26,
+    "annual_hours_saved_low": 217,
+    "annual_fte_saved_low": 0.11,
+    "annual_hours_saved_high": 1227,
+    "annual_fte_saved_high": 0.61,
+    "roi_sensitivity_25": {
+      "effective_lift": 0.0297,
+      "hours": 128,
+      "fte": 0.06
+    },
+    "roi_sensitivity_50": {
+      "effective_lift": 0.0594,
+      "hours": 257,
+      "fte": 0.13
+    },
+    "roi_sensitivity_100": {
+      "effective_lift": 0.1189,
+      "hours": 514,
+      "fte": 0.26
+    }
+  },
+  "pillar4_rfc_and_assets": {
+    "rfc_roc_auc": 0.5364,
+    "rfc_pr_auc": 0.0137,
+    "evaluated_assets_count": 287,
+    "min_spearman_rho": 0.8213,
+    "tier_distribution": {
+      "Critical": 43,
+      "High": 43,
+      "Medium": 58,
+      "Low": 143
+    },
+    "top_critical_assets": [
+      "SUB000508",
+      "WBA000124",
+      "WBA000082",
+      "WBA000107",
+      "WBA000122",
+      "WBA000008",
+      "SUB000002",
+      "SBA000626",
+      "SUB000479",
+      "SUB000505"
+    ]
+  }
+}

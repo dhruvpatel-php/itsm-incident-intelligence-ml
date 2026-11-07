@@ -1,4 +1,29 @@
+# Python byte-code
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Checkpoints & Caches
+.ipynb_checkpoints/
+.matplotlib_cache/
 .cache/
+.pytest_cache/
+
+# Streamlit Local Cache/Config
+.streamlit/
+
+# OS and Temporary Files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# Large Processed Artifacts (Raw data preserved in dataset_list.csv)
 data/processed/cleaned_itsm.csv

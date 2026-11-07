@@ -1,152 +1,97 @@
 # ABC Tech — ITSM Predictive Intelligence Platform (PR-0012)
 ### Senior Data Science Capstone Project | ITIL V3 Process Optimization Suite
 
-[![Python](https://img.shields.io/badge/Python-3.14-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.9.1-orange.svg)](https://scikit-learn.org/)
 [![LightGBM](https://img.shields.io/badge/LightGBM-4.7.0-brightgreen.svg)](https://lightgbm.readthedocs.io/)
-[![XGBoost](https://img.shields.io/badge/XGBoost-3.4.1-red.svg)](https://xgboost.readthedocs.io/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.66-FF4B4B.svg)](https://streamlit.io/)
+[![Statsmodels](https://img.shields.io/badge/Statsmodels-0.15.0-purple.svg)](https://www.statsmodels.org/)
+[![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-orange.svg)](https://jupyter.org/)
 
 ---
 
-## 📌 Executive Summary & Business Case
+## 📌 Executive Summary & Deliverables
 
 **Client**: ABC Tech  
 **Category**: IT Service Management (ITSM) Machine Learning  
 **Project Reference**: PM-PR-0012  
+**Final Deliverable**: [`PRCL-0012_ITSM_Machine_Learning_Improved.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/PRCL-0012_ITSM_Machine_Learning_Improved.ipynb)
 
-**ABC Tech** is a mid-sized organization operating in the IT-enabled services sector for over a decade. Handling **22,000 to 25,000 IT incidents/tickets annually**, ABC Tech implemented the ITIL framework covering Incident Management, Problem Management, Change Management, and Configuration Management. 
-
-Despite achieving an audited mature ITIL process level, recent customer surveys revealed that **incident management was rated as poor**. Internal audits confirmed that further traditional process improvement initiatives yield diminishing returns on investment.
-
-This project delivers an **end-to-end Machine Learning suite** addressing the **4 key business areas** identified by ABC Tech leadership:
-
-1. **Predicting High Priority Tickets (Pillar 1)**: Early detection of critical Priority 1 & 2 incidents at inception to trigger preventive intervention and eliminate triage delay.
-2. **Forecasting Incident Volume (Pillar 2)**: Quarterly and annual forecasting across diverse IT categories to enable data-driven resource allocation and capacity planning.
-3. **Auto-Tagging Tickets & SLA Optimization (Pillar 3)**: Automated classification into the correct department and priority level, reducing multi-hop reassignments by up to **69.4%** and cutting resolution delay by **53.3%**.
-4. **Predicting Requests for Change & Asset Misconfigurations (Pillar 4)**: Detecting change-inducing incidents (RFCs) and establishing an **Asset Risk Index (ARI)** across 3,019 Configuration Items (CIs).
+This repository contains the finalized, audited, and self-contained machine learning capstone deliverable for **ABC Tech**. The suite addresses ITIL incident management optimization across four core business pillars, executed strictly with leak-free temporal validation, computed empirical metrics, and rigorous governance.
 
 ---
 
-## 🏆 Key Performance Highlights
+## 🏆 Key Performance Highlights (Audited & Verified)
 
-| Pillar | Business Objective | Champion Model | Key Metrics | Business Impact |
+| Pillar | Business Objective | Production Model | Key Verified Metrics | Operational Impact |
 |---|---|---|---|---|
-| **Pillar 1** | Early Warning for P1/P2 Incidents | **LightGBM (Weighted)** | **ROC-AUC: 0.9416**<br>**PR-AUC: 0.5660**<br>**Recall: 74%** | **36.5x lift** over random baseline; captures 74% of critical outages before triage delay. |
-| **Pillar 2** | Quarterly & Annual Volume Forecasting | **SARIMA + Holt-Winters Ensemble** | **MAPE: 11.0% - 12.1%**<br>**MAE: 184 - 208** | **2014 Volume: 80,021 tickets**<br>**2015 Capacity: 84,022 tickets**; establishes staffing quotas. |
-| **Pillar 3** | Automated Ticket Tagging & Routing | **LightGBM Multi-Class** | **Routing Acc: 69.4%**<br>**Priority Acc: 76.6%** | Eliminates **69.4%** of misrouted hops; cuts MTTR delay by **53.3%** on misrouted tickets. |
-| **Pillar 4** | RFC Prediction & Asset Risk Profiling | **LightGBM + Composite ARI** | **RFC ROC-AUC: 0.8857**<br>**3,019 Assets Ranked** | Proactively identifies top high-risk CIs (e.g., `SUB000544`, `WSR000008`) for preventive patching. |
+| **Pillar 1** | Early Warning for P1/P2 Incidents | **LightGBM (Cost-Weighted)** | **PR-AUC: 0.2615** [95% CI: 0.1989, 0.3503]<br>**ROC-AUC: 0.9148**<br>**Recall: 50.93% @ Thresh 0.713** | **21.4x lift** over 1.224% prevalence; captures 51% of critical outages at intake. Calibrated Brier score: 0.01014 (-16.3% error). |
+| **Pillar 2** | Incident Volume Forecasting | **Ensemble / SARIMAX / Naive** | **6-Wk Rolling CV MAPE: 12.65%**<br>**Naive MAPE: 12.12%** | **2014 Base Volume: 72,714 tickets** (Q1 actual 21,979 + 39-wk forecast 50,735). Block Bootstrap 95% PI: [67,163, 76,519]. |
+| **Pillar 3 (Priority)** | Deterministic ITIL Matrix & Imputation | **Exact Matrix Lookup + Imputer** | **Matrix Match: 100.00%**<br>**1,380 NS Imputed: 78.8% P3 / 21.2% P4** | Priority is a deterministic 2D lookup (ML redundant). Imputed P3 range: [9.9%, 96.7%] due to covariate shift. |
+| **Pillar 3 (Routing)** | Automated Department Routing | **Variant D (Cat + WBS + Timing)** | **Accuracy: 80.66% (59.42% Bal Acc)**<br>**Balanced: 70.37% (80.57% Bal Acc)** | **+11.89% lift** over 68.77% majority baseline using intake-safe features. Saves **514 hrs/yr (0.26 FTEs)**. |
+| **Pillar 4** | Proactive RFC & Asset Risk Profiling | **Bayesian Asset Risk Index (ARI)** | **RFC Signal: AUC 0.5364 (Negative Result)**<br>**ARI Rank Stability: rho >= 0.8213** | Proves scientific integrity: tabular metadata lacks intake RFC signal once leakage is dropped. Profiles 287 CIs by risk tier. |
 
 ---
 
-## 📂 Project Architecture & Directory Structure
+## 📂 Deliverable Package Contents
 
 ```
 PRCL-0012/
-├── app.py                                  # Interactive Streamlit Web Application
-├── requirements.txt                        # Production Python dependencies
-├── README.md                               # Project documentation and architectural guide
-├── REPORT.md                               # Comprehensive Technical & Client Deliverable Report
-├── data/
-│   ├── raw/
-│   │   └── dataset_list.csv                # 46,606 raw incident records queried from MySQL
-│   └── processed/
-│       ├── cleaned_itsm.csv                # Cleaned, standardized, leakage-free dataset
-│       ├── daily_incident_volume.csv       # Resampled daily volume series (455 days)
-│       └── quarterly_incident_volume.csv   # Historical quarterly volume segmented by field
-├── figures/
-│   ├── 01_priority_distribution.png        # Ticket priority distribution (P1 - P5)
-│   ├── 02_reassignments_vs_handletime.png  # Reassignments vs median handling duration
-│   ├── 03_incident_trend_monthly.png       # Monthly incident inflow trend (2012-2014)
-│   ├── 04_department_breakdown.png         # Distribution across IT service departments
-│   ├── 04b_closure_codes_root_causes.png   # Root causes and misconfiguration breakdown
-│   ├── 05_pillar1_roc_pr_curves.png        # Pillar 1 ROC and PR curves
-│   ├── 06_pillar1_feature_importance.png   # Pillar 1 Top 15 predictive features
-│   ├── 07_pillar2_volume_forecast.png      # Pillar 2 Weekly forecast with 95% CI bands
-│   ├── 08_pillar2_ci_forecasts.png         # Pillar 2 Segmented quarterly forecast
-│   ├── 09_pillar3_department_confusion_matrix.png # Pillar 3 Department routing confusion matrix
-│   ├── 10_pillar3_priority_confusion_matrix.png   # Pillar 3 Priority classification matrix
-│   ├── 11_pillar4_rfc_roc_curve.png        # Pillar 4 RFC detection ROC and PR curves
-│   └── 12_pillar4_ci_asset_risk_matrix.png # Pillar 4 CI Asset Risk Matrix (Volume vs Risk)
-├── models/
-│   ├── pillar1_high_priority_model.joblib  # Trained champion model & encoders for Pillar 1
-│   ├── pillar1_threshold.json              # Calibrated optimal decision threshold (0.760)
-│   ├── pillar2_volume_forecaster.joblib    # Fitted time-series forecaster models & projections
-│   ├── pillar3_department_router.joblib    # Fitted department routing classifier
-│   ├── pillar3_priority_classifier.joblib  # Fitted multi-class priority classifier
-│   ├── pillar4_rfc_predictor.joblib        # Fitted RFC binary predictor
-│   └── pillar4_asset_risk_scores.csv       # Profiled risk registry for all 3,019 IT assets
-├── notebooks/
-│   └── ITSM_Machine_Learning_Capstone.ipynb# Fully documented end-to-end Jupyter Notebook
-└── src/
-    ├── __init__.py
-    ├── config.py                           # Paths, random seeds, and global configurations
-    ├── data_loader.py                      # Data ingestion, handle time parser, priority matrix
-    ├── eda.py                              # Exploratory data analysis & figure generator
-    ├── feature_engineering.py              # Leakage-free temporal & categorical encoders
-    ├── model_pillar1_priority.py           # High-priority classification & threshold tuning
-    ├── model_pillar2_forecasting.py        # Time-series forecasting (SARIMA / Holt-Winters)
-    ├── model_pillar3_routing.py            # Department routing & reassignment simulation
-    ├── model_pillar4_rfc_assets.py         # RFC prediction & Configuration Item Risk Index
-    └── run_all.py                          # Master end-to-end execution pipeline
+├── PRCL-0012_ITSM_Machine_Learning_Improved.ipynb  # Primary Capstone Deliverable (40 cells, fully executed)
+├── dataset_list.csv                                # Raw 46,606 ITSM incident records queried from MySQL
+├── requirements.txt                                # Certified Python dependencies
+├── README.md                                       # Project guide & architecture overview
+├── CHANGELOG.md                                    # Comprehensive audit log of all 4-pillar improvements
+├── VIVA_CHEAT_SHEET.md                             # Defense guide with exact empirical metrics
+├── build_and_execute_v3.py                         # Master deterministic reproduction script
+├── figures/                                        # Generated high-resolution visualization figures
+├── models/                                         # Serialized production models & asset risk profiles
+├── run.bat / run.ps1                               # One-click execution helpers for Streamlit & Notebook
+└── .gitignore                                      # Clean version-control exclusions
 ```
 
 ---
 
 ## 🚀 Quickstart Guide
 
-### 1. Environment Installation
-Ensure Python 3.10+ is installed. Clone or navigate to the repository directory and install the required dependencies:
+### 1. Environment Setup
+Install the verified dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the Complete End-to-End Pipeline
-Execute the full pipeline with a single command to perform data ingestion, cleaning, EDA visualization generation, model training for all 4 pillars, and artifact persistence:
+### 2. Run the Final Deliverable Notebook
+Open and run all cells in [`PRCL-0012_ITSM_Machine_Learning_Improved.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/PRCL-0012_ITSM_Machine_Learning_Improved.ipynb):
 
 ```bash
-python -m src.run_all
+jupyter notebook PRCL-0012_ITSM_Machine_Learning_Improved.ipynb
 ```
+Select **Kernel -> Restart & Run All**. The notebook runs from top to bottom in under 2 minutes and passes all 19 hard runtime assertions and static governance checks in Cell 39.
 
-### 3. Launch the Interactive Web Dashboard
-Run the Streamlit application to explore the executive KPI dashboard, test real-time ticket priority risk assessment, inspect quarterly volume projections, and review the CI Asset Risk Registry:
+### 3. Launch Local Streamlit Application
+To interact with the ITSM Predictive Intelligence dashboard:
 
 ```bash
 streamlit run app.py
 ```
+Or execute `./run.bat` (Windows command line) / `./run.ps1` (PowerShell).
 
-### 4. Run the Jupyter Notebook
-Open and explore the comprehensive, self-contained capstone notebook:
+### 4. Programmatic Notebook Reproduction (Optional)
+To programmatically regenerate and execute the notebook from scratch with fresh kernel outputs:
 
 ```bash
-jupyter notebook notebooks/ITSM_Machine_Learning_Capstone.ipynb
+python build_and_execute_v3.py
 ```
 
 ---
 
-## 🔍 Methodological Insights & Domain Solutions
+## 🔍 Core Methodological Fixes
 
-### 1. Handle Time Anomaly Reconstruction
-The raw `Handle_Time_hrs` contained values such as `'3,87,16,91,111'`. Analysis revealed that exporting European decimals (where `,` denotes decimal separator) on systems with Indian regional formatting stripped decimals and added comma groupings. The last 6 digits represent micro-fractions of an hour ($3600 \text{ seconds} \approx 6 \text{ decimal places}$). The parser successfully reconstructed `3871.691111` hours with 100% precision.
-
-### 2. Deconstructing the ITIL Priority Matrix
-Inspection revealed that when `Impact` was `'NS'` (Not Specified), `Priority` was left as `NaN` (1,380 tickets). For all valid pairs of `Impact` and `Urgency`, the official ITIL matrix matched with **100.00% consistency**. This uncovered a critical ITIL vulnerability: when users omit Impact, tickets sit unprioritized. Our ML model predicts Priority directly from ticket metadata, resolving this bottleneck.
-
-### 3. Severe Class Imbalance (1.55% Positive Class)
-High Priority tickets (P1/P2) account for only 700 out of 45,226 tickets. Standard accuracy (98.5%) would simply predict all tickets as low priority. We resolved this via:
-- Stratified 80/20 train/test splitting.
-- Cost-sensitive weighting (`scale_pos_weight = 64.6`).
-- PR-AUC evaluation (**0.5660** vs **0.0155** baseline).
-- Decision threshold calibration optimizing $F_2$-Score (`threshold = 0.760`), achieving **74% recall** on critical outages.
-
-### 4. Reassignment Escalation Impact
-Tickets with 0 reassignments exhibit a median handling duration of **1,331 hours**, whereas reassigned tickets exhibit a median handling duration of **2,851 hours** — an escalation of **+1,520 hours (+114%)**. Auto-routing achieves **69.4% first-touch precision**, cutting misrouted tickets and reducing resolution delays by **53.3%**.
-
----
-
-## 📊 Client Deliverables
-- Detailed Executive & Technical Report: [`REPORT.md`](file:///c:/Users/hp/Downloads/PRCL-0012/REPORT.md)
-- Jupyter Notebook: [`notebooks/ITSM_Machine_Learning_Capstone.ipynb`](file:///c:/Users/hp/Downloads/PRCL-0012/notebooks/ITSM_Machine_Learning_Capstone.ipynb)
-- Streamlit Web Application: [`app.py`](file:///c:/Users/hp/Downloads/PRCL-0012/app.py)
-- Configuration Item Risk Registry: [`models/pillar4_asset_risk_scores.csv`](file:///c:/Users/hp/Downloads/PRCL-0012/models/pillar4_asset_risk_scores.csv)
+1. **Handle_Time Anomaly**: Decoded active engineering handle time (median: **1.95 hours**) vs elapsed calendar duration (median: **18.40 hours**). Documented that 21.7% of tickets have handle time exceeding calendar duration ($r = 0.1168$), reflecting asynchronous multi-engineer logging.
+2. **ITIL Priority Matrix**: Reverse-engineered the 100% deterministic Impact x Urgency matrix, proving ML priority classification is redundant. For 1,380 tickets lacking Impact, documented severe covariate shift (97.7% are Urgency 3 vs 11.5% in known tickets) and reported the full bootstrap percentile range ([9.9%, 96.7%] P3).
+3. **Pillar 1 Early Warning**: Strictly evaluated on a 20% prospective temporal holdout (8,824 tickets). Achieved **21.4x PR-AUC lift** (0.2615) over chance without looking at manual triage fields. Out-of-sample permutation importance proved `WBS_Freq` and `CI_Name_Freq` dominate escalation.
+4. **Pillar 2 Volume Forecasting**: Corrected structural break by training strictly on the stable enterprise regime (Oct 2013 on). Combined Q1 2014 actual volume (21,979 tickets) with 39-week forecast (50,735 tickets) to establish a 2014 full-year base of **72,714 tickets** bounded by moving-block bootstrap (95% PI: [67,163, 76,519]).
+5. **Pillar 3 Routing**: Removed data leakage from post-triage fields (`CI_Subcat`, `CI_Name`, constant `Alert_Status`). Established deployable Variant D benchmark (**80.66% accuracy**, **+11.89% lift** over 68.77% majority baseline) based on intake WBS billing code frequency (74.6% of WBS map to a single department).
+6. **Data-Linked Econometric ROI**: Controlled for incident complexity via statsmodels OLS regression, confirming each reassignment hop causes **+7.41% handle delay** (0.14 hours, $p = 1.22 \times 10^{-200}$). Deployable Variant D saves **514 engineering hours/year (0.26 FTEs)**.
+7. **Pillar 4 Honest Negative Result & ARI**: Removed circular post-investigation leakage (`Related_Change`, `No_of_Related_Changes`). Proved that intake metadata lacks predictive signal for RFCs (ROC-AUC 0.5364). Built a Bayesian-shrunk Asset Risk Index ($N \ge 10$) with rank order stability $\rho \ge 0.8213$ across 4 weighting schemes.
+8. **Automated Governance Audit**: Dual-layer verification in Cell 39: 19 runtime assertions ensuring 100% claim-to-variable match, plus a strict AST/regex static scan guaranteeing 0 typed numbers in markdown and 0 unwhitelisted numeric literals in print statements.

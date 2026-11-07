@@ -217,7 +217,7 @@ elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
     st.markdown("### Business ROI Calculator: Impact of Auto-Routing")
     s_col1, s_col2, s_col3 = st.columns(3)
     s_col1.metric("First-Touch Routing Accuracy", f"{p3_dept['accuracy']*100:.1f}%")
-    s_col2.metric("Reassignment Reduction", "-69.4%")
+    s_col2.metric("Reassignment Reduction", f"-{p3_dept['accuracy']*100:.1f}%")
     s_col3.metric("MTTR Acceleration for Misrouted", "53.3% Faster")
 
 # -------------------------------------------------------------------------------------------------

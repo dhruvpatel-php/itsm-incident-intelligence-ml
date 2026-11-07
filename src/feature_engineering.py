@@ -70,7 +70,7 @@ def extract_features(df, is_train=True, encoders=None):
 
 if __name__ == "__main__":
     from src.config import CLEANED_DATA_PATH
-    df = pd.read_csv(CLEANED_DATA_PATH)
+    df = pd.read_csv(CLEANED_DATA_PATH, low_memory=False)
     X, enc = extract_features(df, is_train=True)
     print("Feature matrix shape:", X.shape)
     print("Features extracted:", list(X.columns))

@@ -1,7 +1,7 @@
 # PowerShell Task Runner for ABC Tech ITSM ML Pipeline
 param (
     [Parameter(Position=0)]
-    [ValidateSet("setup", "run", "test", "app", "notebook", "report", "lint")]
+    [ValidateSet("setup", "run", "test", "app", "notebook", "report", "lint", "hashes")]
     [string]$Task = "test"
 )
 
@@ -13,7 +13,7 @@ switch ($Task) {
         Write-Host ">>> Setting up Python virtual environment..." -ForegroundColor Cyan
         python -m venv .venv
         & $VenvPython -m pip install --upgrade pip
-        & $VenvPython -m pip install -r requirements.txt pytest ruff nbformat nbconvert ipykernel
+        & $VenvPython -m pip install -r requirements.txt -r requirements-dev.txt
         Write-Host ">>> Environment setup complete!" -ForegroundColor Green
     }
     "run" {
@@ -40,5 +40,9 @@ switch ($Task) {
     "lint" {
         Write-Host ">>> Running Ruff linter..." -ForegroundColor Cyan
         & $VenvPython -m ruff check .
+    }
+    "hashes" {
+        Write-Host ">>> Generating artifact hashes..." -ForegroundColor Cyan
+        & $VenvPython scripts/generate_hashes.py
     }
 }

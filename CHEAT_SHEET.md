@@ -1,7 +1,7 @@
 # PM-PR-0012: Viva Defense & Executive Review Cheat Sheet
 ## ABC Tech ITSM Capstone (Machine Learning & Operational Analytics)
 
-This cheat sheet summarizes the key defense points, architectural decisions, and honest metric changes between the original flawed analysis and the improved production-grade implementation (`PRCL-0012_ITSM_Machine_Learning_Improved.ipynb`).
+This cheat sheet summarizes the key defense points, architectural decisions, and honest metric changes between the original flawed analysis and the improved production-grade implementation (`PRCL-0012_ITSM_Machine_Learning.ipynb`).
 
 ---
 
@@ -105,7 +105,7 @@ This cheat sheet summarizes the key defense points, architectural decisions, and
 
 ### 3. Summary Scorecard (What Changed from v1 to Improved)
 
-| Dimension | Original Notebook (v1) | Improved Architecture (`Improved.ipynb`) |
+| Dimension | Original Flawed Baseline | Final Production Architecture (`PRCL-0012_ITSM_Machine_Learning.ipynb`) |
 |---|---|---|
 | **P1/P2 PR-AUC** | 0.74 (random split, leakage) | **0.2615** (temporal split, early warning, 21.4x lift) |
 | **P1/P2 Decision Threshold** | 0.76 (tuned on test set) | **0.713** (validation $F_2$-tuned, test evaluated once) |

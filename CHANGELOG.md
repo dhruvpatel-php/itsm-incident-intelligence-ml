@@ -1,6 +1,6 @@
 # CHANGELOG: PM-PR-0012 ITSM Machine Learning Pipeline (Audited Enterprise Revision)
 
-This document records the exact changes, empirical findings, and metric shifts implemented in `PRCL-0012_ITSM_Machine_Learning_Improved.ipynb`. All outputs in the improved notebook are generated strictly by in-process code execution from top to bottom, with zero hardcoding and full reproducibility.
+This document records the exact changes, empirical findings, and metric shifts implemented in `PRCL-0012_ITSM_Machine_Learning.ipynb`. All outputs in the notebook are generated strictly by in-process code execution from top to bottom, with zero hardcoding and full reproducibility.
 
 ---
 

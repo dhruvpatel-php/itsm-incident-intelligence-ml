@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "description": "Cryptographic SHA-256 hashes of models, datasets, reports and notebooks"
+  },
+  "models": {
+    "MODEL_CARD.md": {
+      "sha256": "59cf3893df92e65c3af2de032f5990e2008504d75f09b725e47ade42cdc4774c",
+      "size_bytes": 7596
+    },
+    "pillar1_high_priority_model.joblib": {
+      "sha256": "94fe3b10f831cf138bcaf6281b9c2f5291b4423d79b60b41adde3e78ef982477",
+      "size_bytes": 124524
+    },
+    "pillar1_threshold.json": {
+      "sha256": "b225e8f1fc450041204008b90149711c75f9a9111f455f0ab88293c73abb73b1",
+      "size_bytes": 115
+    },
+    "pillar2_volume_forecaster.joblib": {
+      "sha256": "e300d957ec02d30c1999170be2abe6c6cb583ad56fc7607ba61fd6ce2e8a13eb",
+      "size_bytes": 80483
+    },
+    "pillar3_department_router.joblib": {
+      "sha256": "9159b1a7bcf9f9b96b57c09e44c4296b8bcadea24adabf9b99572e3b9b06d822",
+      "size_bytes": 3410212
+    },
+    "pillar3_impact_imputer.joblib": {
+      "sha256": "bbdb2925049ff93b0093d5c657c0306bafe139a9d89a18cae1cb60cf10753b5c",
+      "size_bytes": 1243069
+    },
+    "pillar3_priority_classifier.joblib": {
+      "sha256": "bbdb2925049ff93b0093d5c657c0306bafe139a9d89a18cae1cb60cf10753b5c",
+      "size_bytes": 1243069
+    },
+    "pillar4_asset_risk_scores.csv": {
+      "sha256": "761e02ea47b7b7309e885175b84986b6f983db59a595cd86624570e9faf5a542",
+      "size_bytes": 108335
+    },
+    "pillar4_rfc_predictor.joblib": {
+      "sha256": "8271401042b9292c4870fec0af0ed7d90c83f776b15576efd7df6124058cc798",
+      "size_bytes": 181782
+    }
+  },
+  "reports": {
+    "metrics.json": {
+      "sha256": "4b3508cea5d7ad6060a0874cdf76ed6b333d16b7d86ce3d77d4e230bdfea4038",
+      "size_bytes": 4962
+    },
+    "metrics_reference.json": {
+      "sha256": "154c4b318e23f61d7c4410f57cd5ddc1e711777c0be318ae1422dfcccd932ad0",
+      "size_bytes": 4321
+    }
+  },
+  "data": {
+    "dataset_list.csv": {
+      "sha256": "6185ec13fdb0f6e4873cc94e18b3db854b685cb18cff85990ba8bc6a36b3e692",
+      "size_bytes": 9891069
+    }
+  },
+  "notebooks": {
+    "PRCL-0012_ITSM_Machine_Learning.ipynb": {
+      "sha256": "09c85287025a9c37a6280a6faf12c2c8a50d42e05405bfdf49ee85c900c2b159",
+      "size_bytes": 1125467
+    }
+  }
+}

@@ -16,16 +16,12 @@
       "size_bytes": 115
     },
     "pillar2_volume_forecaster.joblib": {
-      "sha256": "e300d957ec02d30c1999170be2abe6c6cb583ad56fc7607ba61fd6ce2e8a13eb",
-      "size_bytes": 80483
+      "sha256": "f90c3ac486937514bbc9e047ca3384a947e834b09b7f026396d2cd882ccd4876",
+      "size_bytes": 1867
     },
     "pillar3_department_router.joblib": {
       "sha256": "9159b1a7bcf9f9b96b57c09e44c4296b8bcadea24adabf9b99572e3b9b06d822",
       "size_bytes": 3410212
-    },
-    "pillar3_impact_imputer.joblib": {
-      "sha256": "bbdb2925049ff93b0093d5c657c0306bafe139a9d89a18cae1cb60cf10753b5c",
-      "size_bytes": 1243069
     },
     "pillar3_priority_classifier.joblib": {
       "sha256": "bbdb2925049ff93b0093d5c657c0306bafe139a9d89a18cae1cb60cf10753b5c",

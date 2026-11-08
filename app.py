@@ -15,12 +15,12 @@ from src.config import FIGURES_DIR, MODELS_DIR, REPORTS_DIR
 
 st.set_page_config(
     page_title="ABC Tech | ITSM Machine Learning Suite",
-    page_icon="🛠️",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Custom Styling (Clean Enterprise - No Emojis)
 st.markdown("""
 <style>
     .main-title { font-size: 2.2rem; font-weight: 800; color: #1f2937; margin-bottom: 0px; }
@@ -28,28 +28,15 @@ st.markdown("""
     .kpi-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; }
     .kpi-val { font-size: 1.8rem; font-weight: 700; color: #2563eb; }
     .kpi-lbl { font-size: 0.85rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .callout-info { background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 6px; color: #1e3a8a; margin-top: 10px; margin-bottom: 12px; font-size: 0.95rem; }
+    .callout-success { background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 12px 16px; border-radius: 6px; color: #14532d; margin-top: 10px; margin-bottom: 12px; font-size: 0.95rem; }
+    .callout-error { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; border-radius: 6px; color: #7f1d1d; margin-top: 10px; margin-bottom: 12px; font-size: 0.95rem; }
+    .callout-warning { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; color: #78350f; margin-top: 10px; margin-bottom: 12px; font-size: 0.95rem; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">ABC Tech — ITSM Predictive Intelligence Platform</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">ITIL Process Optimization, Early Warning Triage, Volume Forecasting & Asset Risk Profiling</div>', unsafe_allow_html=True)
-
-# Sidebar Navigation
-sidebar_nav = st.sidebar.radio(
-    "Navigation",
-    [
-        "Executive Dashboard",
-        "Pillar 1: High Priority Triage",
-        "Pillar 2: Volume Forecasting",
-        "Pillar 3: Auto-Tagging & Routing",
-        "Pillar 4: Asset Risk & RFC"
-    ]
-)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Project Reference**: PM-PR-0012")
-st.sidebar.markdown("**Framework**: ITIL V3 + Machine Learning")
-st.sidebar.markdown("**Dataset**: 46.6K Records (2012-2014)")
 
 # Helper function to load models and single source of truth metrics
 @st.cache_resource
@@ -76,10 +63,58 @@ def load_artifacts():
         metrics = json.load(fh)
     return p1, p2, p3_dept, p3_prio, p4_rfc, p4_assets, metrics
 
+@st.cache_data
+def get_dataset_summary():
+    csv_path = PROJECT_ROOT / "data" / "processed" / "cleaned_itsm.csv"
+    if csv_path.exists():
+        df = pd.read_csv(csv_path, usecols=['Priority', 'No_of_Reassignments', 'Open_DT'], low_memory=False)
+    else:
+        from src.data_loader import load_and_clean_data
+        df, _ = load_and_clean_data(return_metrics=True)
+
+    # P1/P2 and Priority shares
+    valid_prio = df[df['Priority'].isin([1, 2, 3, 4, 5, '1', '2', '3', '4', '5'])].copy()
+    prio_num = valid_prio['Priority'].astype(str).str.extract(r'(\d+)')[0].astype(int)
+    denom = len(valid_prio)
+    p1p2_cnt = int((prio_num <= 2).sum())
+    p1p2_pct = float(p1p2_cnt / denom * 100) if denom else 0.0
+
+    prio_counts = prio_num.value_counts()
+    p4_pct = float(prio_counts.get(4, 0) / denom * 100) if denom else 0.0
+    p5_pct = float(prio_counts.get(5, 0) / denom * 100) if denom else 0.0
+
+    # Reassigned ratio
+    total_rows = len(df)
+    reassigned_cnt = int((df['No_of_Reassignments'] > 0).sum())
+    reassigned_pct = float(reassigned_cnt / total_rows * 100) if total_rows else 0.0
+
+    # Monthly range for Oct 2013 - Mar 2014 observed
+    open_dt = pd.to_datetime(df['Open_DT'])
+    stable_mask = (open_dt >= '2013-10-01') & (open_dt <= '2014-03-31')
+    monthly = open_dt[stable_mask].dt.to_period('M').value_counts()
+    min_monthly = int(monthly.min()) if len(monthly) else 0
+    max_monthly = int(monthly.max()) if len(monthly) else 0
+    min_year = int(open_dt.dt.year.min())
+    max_year = int(open_dt.dt.year.max())
+
+    return {
+        "p1p2_count": p1p2_cnt,
+        "p1p2_denom": denom,
+        "p1p2_pct": p1p2_pct,
+        "p4_pct": p4_pct,
+        "p5_pct": p5_pct,
+        "reassigned_pct": reassigned_pct,
+        "min_monthly": min_monthly,
+        "max_monthly": max_monthly,
+        "min_year": min_year,
+        "max_year": max_year,
+    }
+
 try:
     p1, p2, p3_dept, p3_prio, p4_rfc, p4_assets, metrics = load_artifacts()
+    ds = get_dataset_summary()
 except Exception as e:
-    st.error(f"⚠️ {e}")
+    st.error(f"Initialization Error: {e}")
     st.info("Execute: `python -m src.run_all` in your terminal to build all production artifacts.")
     st.stop()
 
@@ -89,6 +124,22 @@ p2_m = metrics["pillar2_forecasting"]
 p3_p_m = metrics["pillar3_priority"]
 p3_r_m = metrics["pillar3_routing"]
 p4_m = metrics["pillar4_rfc_and_assets"]
+
+# Sidebar Navigation
+sidebar_nav = st.sidebar.radio(
+    "Navigation",
+    [
+        "Executive Dashboard",
+        "Pillar 1: High Priority Triage",
+        "Pillar 2: Volume Forecasting",
+        "Pillar 3: Auto-Tagging & Routing",
+        "Pillar 4: Asset Risk & RFC"
+    ]
+)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Framework**: ITIL Process Framework + Machine Learning")
+st.sidebar.markdown(f"**Dataset**: {dl_m['total_rows'] / 1000:.1f}K Records ({ds['min_year']}-{ds['max_year']})")
 
 # -------------------------------------------------------------------------------------------------
 # VIEW 1: EXECUTIVE DASHBOARD
@@ -105,16 +156,16 @@ if sidebar_nav == "Executive Dashboard":
         </div>
         """, unsafe_allow_html=True)
     with col2:
-        st.markdown("""
+        st.markdown(f"""
         <div class="kpi-card">
-            <div class="kpi-val" style="color:#dc2626;">700 (1.55%)</div>
-            <div class="kpi-lbl">P1 / P2 Major Outages</div>
+            <div class="kpi-val" style="color:#dc2626;">{ds['p1p2_count']:,} ({ds['p1p2_pct']:.2f}%)</div>
+            <div class="kpi-lbl">P1 / P2 Major Outages (N={ds['p1p2_denom']:,})</div>
         </div>
         """, unsafe_allow_html=True)
     with col3:
-        st.markdown("""
+        st.markdown(f"""
         <div class="kpi-card">
-            <div class="kpi-val" style="color:#d97706;">41.1%</div>
+            <div class="kpi-val" style="color:#d97706;">{ds['reassigned_pct']:.1f}%</div>
             <div class="kpi-lbl">Reassigned Incident Ratio</div>
         </div>
         """, unsafe_allow_html=True)
@@ -122,7 +173,7 @@ if sidebar_nav == "Executive Dashboard":
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-val" style="color:#16a34a;">{p2_m['base_vol_2014']:,}</div>
-            <div class="kpi-lbl">2014 Projected Annual Load</div>
+            <div class="kpi-lbl">Projected Annual Load</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -131,13 +182,13 @@ if sidebar_nav == "Executive Dashboard":
     tab1, tab2, tab3 = st.tabs(["Priority Distribution", "Reassignment Escalation", "Historical Inflow Trend"])
     with tab1:
         st.image(str(FIGURES_DIR / "01_priority_distribution.png"), width="stretch")
-        st.info("**Key Finding**: Tickets are heavily concentrated in P4 (50.2%) and P5 (36.5%). Critical P1/P2 tickets represent just 1.55% of volume, creating severe operational risk when misidentified.")
+        st.markdown(f'<div class="callout-info"><strong>Key Finding</strong>: Tickets are heavily concentrated in P4 ({ds["p4_pct"]:.1f}%) and P5 ({ds["p5_pct"]:.1f}%). Critical P1/P2 tickets represent just {ds["p1p2_pct"]:.2f}% of volume ({ds["p1p2_count"]:,} of {ds["p1p2_denom"]:,} verified tickets), creating severe operational risk when misidentified.</div>', unsafe_allow_html=True)
     with tab2:
         st.image(str(FIGURES_DIR / "02_reassignments_vs_handletime.png"), width="stretch")
-        st.info(f"**Key Finding**: Controlled econometric OLS regression proves each bounce adds **+{p3_r_m['delay_penalty_pct']:.2f}% active handle duration** ({p3_r_m['delay_hours_saved_per_bounce']:.2f} hours/bounce, p={p3_r_m['delay_p_value']:.2e}), proving that manual routing hops are ABC Tech's primary MTTR bottleneck.")
+        st.markdown(f'<div class="callout-info"><strong>Key Finding</strong>: Controlled econometric OLS regression proves each bounce adds <strong>+{p3_r_m["delay_penalty_pct"]:.2f}% active handle duration</strong> ({p3_r_m["delay_hours_saved_per_bounce"]:.2f} hours/bounce, p={p3_r_m["delay_p_value"]:.2e}), proving that manual routing hops are ABC Tech\'s primary MTTR bottleneck.</div>', unsafe_allow_html=True)
     with tab3:
         st.image(str(FIGURES_DIR / "03_incident_trend_monthly.png"), width="stretch")
-        st.info("**Key Finding**: Ticketing surged significantly post-enterprise rollout in October 2013, maintaining sustained operational throughput of 6,000 - 8,500 tickets monthly in 2014.")
+        st.markdown(f'<div class="callout-info"><strong>Key Finding</strong>: Ticketing surged significantly post-enterprise rollout (Oct 2013 - Mar 2014 observed: {ds["min_monthly"]:,} - {ds["max_monthly"]:,} tickets monthly).</div>', unsafe_allow_html=True)
 
 # -------------------------------------------------------------------------------------------------
 # VIEW 2: PILLAR 1 — HIGH PRIORITY TRIAGE
@@ -217,12 +268,12 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
         res_col1, res_col2 = st.columns([1, 2])
         with res_col1:
             if raw_prob >= threshold:
-                st.error(f"🚨 **HIGH PRIORITY ESCALATION (P1/P2)**\n\nProbability: **{raw_prob*100:.1f}%** (Threshold: {threshold*100:.1f}%)")
+                st.markdown(f'<div class="callout-error"><strong>HIGH PRIORITY ESCALATION (P1/P2)</strong><br>Probability: <strong>{raw_prob*100:.1f}%</strong> (Threshold: {threshold*100:.1f}%)</div>', unsafe_allow_html=True)
             else:
-                st.success(f"**Standard Ticket (P3 - P5)**\n\nProbability of P1/P2: **{raw_prob*100:.1f}%**")
+                st.markdown(f'<div class="callout-success"><strong>Standard Ticket (P3 - P5)</strong><br>Probability of P1/P2: <strong>{raw_prob*100:.1f}%</strong></div>', unsafe_allow_html=True)
 
             if is_unseen:
-                st.warning(f"ℹ️ **Unseen Asset Mode**: This asset was not observed in training. Evaluated holdout performance on unseen assets: PR-AUC = **{p1_m['unseen_assets']['pr_auc']:.4f}**, Recall = **{p1_m['unseen_assets']['recall']*100:.1f}%**.")
+                st.markdown(f'<div class="callout-warning"><strong>Unseen Asset Mode</strong>: This asset was not observed in training. Evaluated holdout performance on unseen assets: PR-AUC = <strong>{p1_m["unseen_assets"]["pr_auc"]:.4f}</strong>, Recall = <strong>{p1_m["unseen_assets"]["recall"]*100:.1f}%</strong>.</div>', unsafe_allow_html=True)
         with res_col2:
             st.metric("Champion Model", p1_m['model_name'])
             st.metric("Model PR-AUC (Holdout Test)", f"{p1_m['test_pr_auc']:.4f}", delta=f"{p1_m['statistical_lift']:.1f}x Prevalence Lift")
@@ -239,7 +290,7 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
 
     f_col1, f_col2 = st.columns([1, 1])
     with f_col1:
-        st.markdown("### 2014 Enterprise Capacity Projections")
+        st.markdown("### Enterprise Annual Capacity Projections")
         q_data = {
             "Horizon Period": ["Q1 2014 (Recorded)", "Remaining 39 Weeks (Forecast)", "Full Year 2014 Total (Base)", "2014 95% PI (Low Bound)", "2014 95% PI (High Bound)"],
             "Incident Volume": [f"{p2_m['q1_2014_actual']:,}", f"{p2_m['future_39w_base']:,}", f"{p2_m['base_vol_2014']:,}", f"{p2_m['low_vol_2014']:,}", f"{p2_m['high_vol_2014']:,}"],
@@ -251,7 +302,7 @@ elif sidebar_nav == "Pillar 2: Volume Forecasting":
         st.metric("Full-Year 2014 Base Forecast", f"{p2_m['base_vol_2014']:,} tickets", delta=f"95% PI: [{p2_m['low_vol_2014']:,} - {p2_m['high_vol_2014']:,}]")
         st.metric("2015 Capacity Baseline Target", f"{p2_m['scenario_2015_plus5pct']:,} tickets", delta="+5.0% Planning Trend")
 
-        st.markdown("**6-Fold Rolling-Origin Backtest Performance (MAPE)**:")
+        st.markdown(f"**{p2['provenance']['n_folds']}-Fold Rolling-Origin Backtest Performance (MAPE)**:")
         mape_df = pd.DataFrame([
             {"Model": k, "Backtest MAPE": f"{v:.2f}%"} for k, v in sorted(p2_m['backtest_mape'].items(), key=lambda x: x[1])
         ])
@@ -268,7 +319,7 @@ elif sidebar_nav == "Pillar 3: Auto-Tagging & Routing":
     with r_col1:
         st.image(str(FIGURES_DIR / "09_pillar3_department_confusion_matrix.png"), width="stretch")
     with r_col2:
-        st.image(str(FIGURES_DIR / "10_pillar3_priority_confusion_matrix.png"), width="stretch")
+        st.image(str(FIGURES_DIR / "10_pillar3_routing_recall.png"), width="stretch")
 
     st.markdown("---")
     st.markdown("### Business ROI: Recovered Engineering Capacity")
@@ -295,7 +346,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), width="stretch")
 
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
-    st.info(f"**Bayesian Shrinkage Filter (N >= 10)**: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with 1 incident topping raw risk lists). We filter on {p4_m['evaluated_assets_count']} active assets with at least 10 incidents and apply Empirical Bayes shrinkage (m=10.0), guaranteeing rank stability (Spearman rho = {p4_m['min_spearman_rho']:.4f}).")
+    st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; 10)</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {p4_m["evaluated_assets_count"]} active assets with at least 10 incidents and apply Empirical Bayes shrinkage (m=10.0), guaranteeing rank stability (Spearman rho = {p4_m["min_spearman_rho"]:.4f}).</div>', unsafe_allow_html=True)
 
     top_n = st.slider("Number of Assets to Display", 5, 50, 15)
     cols = ['CI_Name', 'CI_Cat', 'total_incidents', 'p1p2_incidents', 'rfc_incidents', 'ARI_Final', 'Risk_Tier']
@@ -308,6 +359,9 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
         'Risk_Tier': 'Risk Tier'
     }, inplace=True)
     display_df['Asset Risk Index (0-100)'] = display_df['Asset Risk Index (0-100)'].map("{:.1f}".format)
+    display_df['Total Incidents'] = display_df['Total Incidents'].map("{:,}".format)
+    display_df['P1/P2 Incidents'] = display_df['P1/P2 Incidents'].map("{:,.0f}".format)
+    display_df['RFC Incidents'] = display_df['RFC Incidents'].map("{:,.0f}".format)
     st.dataframe(display_df, width="stretch", hide_index=True)
 
     st.markdown("---")
@@ -318,9 +372,9 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     with rfc_c2:
         st.markdown(f"""
         **Scientific Integrity Audit**:
-        - **Test Holdout ROC-AUC**: **{p4_m['rfc_roc_auc']:.4f}** (Near random chance 0.5000)
-        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~1.0%)
+        - **Test Holdout ROC-AUC**: **{p4_m['rfc_roc_auc']:.4f}** (Near random chance baseline)
+        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~{p4_m.get('rfc_prevalence', 0.0137)*100:.2f}%)
         
         **Why Circular Leakage Was Eliminated**:
-        Historical models claimed >88% AUC by leaking post-investigation fields (`Related_Change`, `No_of_Related_Changes`). In standard ITIL workflows, change identifiers are created after troubleshooting begins. Restricted strictly to intake-available metadata, tabular feeds carry zero proactive separation. Reporting this honest negative result protects engineering from deploying lookahead-dependent models into production.
+        Historical models claimed inflated separation by leaking post-investigation fields (`Related_Change`, `No_of_Related_Changes`). In standard ITIL workflows, change identifiers are created after troubleshooting begins. Restricted strictly to intake-available metadata, tabular feeds carry zero proactive separation. Reporting this honest negative result protects engineering from deploying lookahead-dependent models into production.
         """)

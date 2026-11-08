@@ -13,7 +13,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
-import statsmodels.api as sm
+from statsmodels.regression.linear_model import OLS
+from statsmodels.tools import add_constant
 
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import (
@@ -288,10 +289,10 @@ def build_routing(df=None, base_vol_2014=72714):
     sub_reg['log_handle'] = np.log1p(sub_reg['Handle_Time_Clean'])
     X_reg = pd.get_dummies(sub_reg[['Priority_Clean', 'Category', 'CI_Cat']], drop_first=True, dtype=float)
     X_reg['No_of_Reassignments'] = sub_reg['No_of_Reassignments_Clean']
-    X_reg = sm.add_constant(X_reg)
+    X_reg = add_constant(X_reg)
     y_reg = sub_reg['log_handle']
 
-    ols_model = sm.OLS(y_reg, X_reg).fit(cov_type='HC3')
+    ols_model = OLS(y_reg, X_reg).fit(cov_type='HC3')
     beta_reassign = float(ols_model.params['No_of_Reassignments'])
     ci_reassign = ols_model.conf_int().loc['No_of_Reassignments']
     p_reassign = float(ols_model.pvalues['No_of_Reassignments'])
@@ -410,7 +411,7 @@ def build_routing(df=None, base_vol_2014=72714):
     ax.legend(loc='upper right')
     ax.grid(axis='y', linestyle='--', alpha=0.4)
     plt.tight_layout()
-    fig.savefig(FIGURES_DIR / "10_pillar3_priority_confusion_matrix.png", dpi=300)
+    fig.savefig(FIGURES_DIR / "10_pillar3_routing_recall.png", dpi=300)
     plt.close(fig)
 
     # -------------------------------------------------------------
@@ -445,7 +446,6 @@ def build_routing(df=None, base_vol_2014=72714):
         "metrics": priority_metrics
     }
     joblib.dump(prio_payload, MODELS_DIR / "pillar3_priority_classifier.joblib")
-    joblib.dump(prio_payload, MODELS_DIR / "pillar3_impact_imputer.joblib")
 
     logger.info("Pillar 3 routing & priority artifacts successfully saved.")
     return {"pillar3_priority": priority_metrics, "pillar3_routing": routing_metrics}

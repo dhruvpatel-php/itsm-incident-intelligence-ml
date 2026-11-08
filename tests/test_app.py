@@ -87,3 +87,29 @@ def test_app_artifact_loading():
     assert p4_rfc is not None
     assert len(p4_assets) == 287
     assert metrics["pillar1_early_warning"]["test_roc_auc"] > 0.90
+
+def test_app_no_numeric_literals_in_get_defaults():
+    """
+    Fail on any numeric literal passed as the 2nd argument of .get() in app.py.
+    Ensures metrics and configurations are read directly from single source of truth.
+    """
+    app_file = PROJECT_ROOT / "app.py"
+    source = app_file.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    violations = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute) and node.func.attr == 'get':
+                if len(node.args) >= 2:
+                    second_arg = node.args[1]
+                    if isinstance(second_arg, ast.Constant) and isinstance(second_arg.value, (int, float)):
+                        violations.append((node.lineno, second_arg.value))
+                    elif isinstance(second_arg, ast.UnaryOp) and isinstance(second_arg.operand, ast.Constant):
+                        if isinstance(second_arg.operand.value, (int, float)):
+                            violations.append((node.lineno, second_arg.operand.value))
+
+    assert not violations, (
+        "Found numeric literal(s) passed as 2nd argument of .get() in app.py:\n"
+        + "\n".join(f"Line {v[0]}: numeric default value {v[1]}" for v in violations)
+    )

@@ -11,13 +11,7 @@ import pandas as pd
 import streamlit as st
 import joblib
 
-from src.config import (
-    ARI_MIN_INCIDENTS,
-    ARI_SHRINKAGE_M,
-    FIGURES_DIR,
-    MODELS_DIR,
-    REPORTS_DIR,
-)
+from src.config import FIGURES_DIR, MODELS_DIR, REPORTS_DIR
 
 st.set_page_config(
     page_title="ABC Tech | ITSM Machine Learning Suite",
@@ -86,8 +80,8 @@ def get_dataset_summary():
     p1p2_pct = float(p1p2_cnt / denom * 100) if denom else 0.0
 
     prio_counts = prio_num.value_counts()
-    p4_pct = float(prio_counts.get(4, 0) / denom * 100) if denom else 0.0
-    p5_pct = float(prio_counts.get(5, 0) / denom * 100) if denom else 0.0
+    p4_pct = float(prio_counts[4] / denom * 100) if (denom and 4 in prio_counts) else 0.0
+    p5_pct = float(prio_counts[5] / denom * 100) if (denom and 5 in prio_counts) else 0.0
 
     # Reassigned ratio
     total_rows = len(df)
@@ -238,8 +232,8 @@ elif sidebar_nav == "Pillar 1: High Priority Triage":
         is_unseen = (ci_choice == "Unseen / New Asset")
 
         # Build features strictly matching trained schema
-        ci_freq_val = 0.0 if is_unseen else float(p1['ci_freq'].get(ci_choice, 0))
-        wbs_freq_val = 0.0 if wbs_choice == "Unseen / New WBS" else float(p1['wbs_freq'].get(wbs_choice, 0))
+        ci_freq_val = float(p1['ci_freq'][ci_choice]) if (not is_unseen and ci_choice in p1['ci_freq']) else 0.0
+        wbs_freq_val = float(p1['wbs_freq'][wbs_choice]) if (wbs_choice != "Unseen / New WBS" and wbs_choice in p1['wbs_freq']) else 0.0
 
         mock_row = pd.DataFrame([{
             'Open_Hour': hour,
@@ -353,10 +347,16 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), width="stretch")
 
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
-    min_n = p4_m.get("min_incidents_threshold", ARI_MIN_INCIDENTS)
-    m_shrink = p4_m.get("bayes_shrinkage_m", ARI_SHRINKAGE_M)
-    eval_cnt = p4_m.get("evaluated_assets_count", len(p4_assets))
-    rho_val = p4_m.get("min_spearman_rho", 0.9825)
+    try:
+        min_n = p4_m["min_incidents_threshold"]
+        m_shrink = p4_m["bayes_shrinkage_m"]
+        eval_cnt = p4_m["evaluated_assets_count"]
+        rho_val = p4_m["min_spearman_rho"]
+        rfc_prev = p4_m["rfc_prevalence"]
+    except KeyError:
+        st.error("metrics.json out of date - re-run python -m src.run_all")
+        st.stop()
+
     st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; {min_n})</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {eval_cnt} active assets with at least {min_n} incidents and apply Empirical Bayes shrinkage (m={m_shrink:.1f}), guaranteeing rank stability (Spearman rho = {rho_val:.4f}).</div>', unsafe_allow_html=True)
 
     top_n = st.slider("Number of Assets to Display", 5, 50, 15)
@@ -377,7 +377,6 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
 
     st.markdown("---")
     st.markdown("### Proactive RFC Prediction (Negative Result Audit)")
-    rfc_prev = p4_m.get("rfc_prevalence", 0.0098)
     rfc_c1, rfc_c2 = st.columns([1, 1])
     with rfc_c1:
         st.image(str(FIGURES_DIR / "11_pillar4_rfc_roc_curve.png"), width="stretch")

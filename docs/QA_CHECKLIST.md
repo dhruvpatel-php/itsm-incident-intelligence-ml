@@ -37,7 +37,7 @@ This document provides the formal quality assurance and engineering verification
 |---|:---:|---|
 | **Stable regime isolation (post-Oct-2013)** | **PASS** | `src/model_pillar2_forecasting.py:35-45`: Isolates the 26 weekly observations from 2013-10-01 to 2014-03-31, discarding the 39 pilot weeks before October 2013 where incident capture was incomplete. Verified in `tests/test_forecasting.py::test_forecasting_regime_and_horizon`. |
 | **Naive persistence baseline included & competitive** | **PASS** | `src/model_pillar2_forecasting.py:75-95`: Multi-step rolling-origin backtest includes Naive persistence baseline, achieving **12.12% MAPE** (beats SARIMAX 13.17%, Holt-Winters 15.77%, and Seasonal Naive 20.17%). Ensemble achieves 12.65% MAPE. Verified in `tests/test_forecasting.py`. |
-| **Shared rolling-origin backtest** | **PASS** | Identical 6-fold rolling backtest ($H=4$ weeks horizon) evaluated systematically across all candidate models. |
+| **Shared rolling-origin backtest** | **PASS** | Identical 6-fold rolling backtest ($H=2$ weeks horizon) evaluated systematically across all candidate models. |
 | **Moving-block bootstrap prediction interval** | **PASS** | `src/model_pillar2_forecasting.py:130-170`: 1,000-iteration moving-block bootstrap ($L=4$) generates honest 95% prediction intervals for 2014 total volume: $67,163 \le 72,714 \le 76,519$ ($Low < Base < High$). Verified in `tests/test_forecasting.py::test_prediction_interval_invariance`. |
 | **Zero hardcoded volume numbers** | **PASS** | All forecasts, bounds, scenarios, and capacity requirements are computed directly from time series models. Verified 0 occurrences of hardcoded constants in `src/` and `app.py`. |
 
@@ -100,3 +100,4 @@ This document provides the formal quality assurance and engineering verification
 | **requirements.txt pinned matching README badges** | **PASS** | `scikit-learn==1.9.1`, `lightgbm==4.7.0`, `statsmodels==0.15.0`. Developer tools isolated in `requirements-dev.txt`. |
 | **No duplicate notebooks present** | **PASS** | `PRCL-0012_ITSM_Machine_Learning.ipynb` retained as sole canonical delivery notebook. Duplicate `Improved.ipynb` safely removed. |
 | **Cell 39 runtime governance audit passes** | **PASS** | Governance checks in `PRCL-0012_ITSM_Machine_Learning.ipynb` pass all methodology checks with 0 unwhitelisted hardcoded print numbers. |
+

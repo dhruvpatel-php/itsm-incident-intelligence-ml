@@ -34,6 +34,10 @@ RANDOM_STATE = 42
 # Stable Regime Date Cutoff (Post-Rollout Enterprise Cutover)
 STABLE_REGIME_START = "2013-10-01"
 
+# Pillar 4 Asset Risk Shrinkage Parameters
+ARI_MIN_INCIDENTS = 10
+ARI_SHRINKAGE_M = 10.0
+
 # Official ITIL Priority Matrix (Impact, Urgency) -> Priority
 PRIORITY_MATRIX = {
     (1, 1): 1, (1, 2): 2, (1, 3): 3, (1, 4): 3, (1, 5): 3,

@@ -20,6 +20,8 @@ from sklearn.metrics import (
 import lightgbm as lgb
 
 from src.config import (
+    ARI_MIN_INCIDENTS,
+    ARI_SHRINKAGE_M,
     CLEANED_DATA_PATH,
     FIGURES_DIR,
     MODELS_DIR,
@@ -102,6 +104,7 @@ def build_rfc_and_assets(df=None):
     preds_te_rfc = (probs_te_rfc >= opt_t_rfc).astype(int)
     rec_rfc = float(recall_score(y_te_rfc, preds_te_rfc, zero_division=0))
     prec_rfc = float(precision_score(y_te_rfc, preds_te_rfc, zero_division=0))
+    rfc_prev = round(float(np.mean(y_te_rfc)), 4)
 
     # Bootstrap 95% CI
     np.random.seed(RANDOM_STATE)
@@ -153,13 +156,13 @@ def build_rfc_and_assets(df=None):
         mean_handle_time=('Handle_Time_Clean', 'mean')
     ).reset_index()
 
-    # Activity Filter: N >= 10 incidents
-    ci_stable_ari = ci_stats[ci_stats['total_incidents'] >= 10].copy()
+    # Activity Filter: Minimum incidents threshold
+    ci_stable_ari = ci_stats[ci_stats['total_incidents'] >= ARI_MIN_INCIDENTS].copy()
     n_eval_assets = len(ci_stable_ari)
-    logger.info(f"Assets evaluated with N >= 10 incidents: {n_eval_assets}")
+    logger.info(f"Assets evaluated with N >= {ARI_MIN_INCIDENTS} incidents: {n_eval_assets}")
 
-    # Empirical Bayes Shrinkage (m = 10.0)
-    m_shrink = 10.0
+    # Empirical Bayes Shrinkage
+    m_shrink = ARI_SHRINKAGE_M
     global_p1p2_rate = float(df_stable['Is_High_Priority'].mean())
     global_rfc_rate = float(df_stable['Has_RFC'].mean())
     global_reassign_rate = float((df_stable['No_of_Reassignments_Clean'] > 0).mean())
@@ -262,6 +265,9 @@ def build_rfc_and_assets(df=None):
     metrics = {
         "rfc_roc_auc": round(roc_rfc, 4),
         "rfc_pr_auc": round(pr_rfc, 4),
+        "rfc_prevalence": rfc_prev,
+        "min_incidents_threshold": ARI_MIN_INCIDENTS,
+        "bayes_shrinkage_m": ARI_SHRINKAGE_M,
         "evaluated_assets_count": int(n_eval_assets),
         "min_spearman_rho": round(min_spearman, 4),
         "tier_distribution": {

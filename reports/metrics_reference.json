@@ -136,6 +136,9 @@
   "pillar4_rfc_and_assets": {
     "rfc_roc_auc": 0.5364,
     "rfc_pr_auc": 0.0137,
+    "rfc_prevalence": 0.0098,
+    "min_incidents_threshold": 10,
+    "bayes_shrinkage_m": 10.0,
     "evaluated_assets_count": 287,
     "min_spearman_rho": 0.8213,
     "tier_distribution": {

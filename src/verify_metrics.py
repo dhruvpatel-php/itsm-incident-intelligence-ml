@@ -98,6 +98,9 @@ DEFAULT_TOLERANCES = {
     # Pillar 4
     "rfc_roc_auc": 0.002,
     "rfc_pr_auc": 0.002,
+    "rfc_prevalence": 0.001,
+    "min_incidents_threshold": 0,
+    "bayes_shrinkage_m": 0.1,
     "evaluated_assets_count": 0,
     "min_spearman_rho": 0.002,
     "Critical": 0,

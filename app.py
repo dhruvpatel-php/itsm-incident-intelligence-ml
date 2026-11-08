@@ -346,7 +346,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), width="stretch")
 
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
-    st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; 10)</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {p4_m["evaluated_assets_count"]} active assets with at least 10 incidents and apply Empirical Bayes shrinkage (m=10.0), guaranteeing rank stability (Spearman rho = {p4_m["min_spearman_rho"]:.4f}).</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; {p4_m["min_incidents_threshold"]})</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {p4_m["evaluated_assets_count"]} active assets with at least {p4_m["min_incidents_threshold"]} incidents and apply Empirical Bayes shrinkage (m={p4_m["bayes_shrinkage_m"]:.1f}), guaranteeing rank stability (Spearman rho = {p4_m["min_spearman_rho"]:.4f}).</div>', unsafe_allow_html=True)
 
     top_n = st.slider("Number of Assets to Display", 5, 50, 15)
     cols = ['CI_Name', 'CI_Cat', 'total_incidents', 'p1p2_incidents', 'rfc_incidents', 'ARI_Final', 'Risk_Tier']
@@ -373,7 +373,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
         st.markdown(f"""
         **Scientific Integrity Audit**:
         - **Test Holdout ROC-AUC**: **{p4_m['rfc_roc_auc']:.4f}** (Near random chance baseline)
-        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~{p4_m.get('rfc_prevalence', 0.0137)*100:.2f}%)
+        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~{p4_m['rfc_prevalence']*100:.2f}%)
         
         **Why Circular Leakage Was Eliminated**:
         Historical models claimed inflated separation by leaking post-investigation fields (`Related_Change`, `No_of_Related_Changes`). In standard ITIL workflows, change identifiers are created after troubleshooting begins. Restricted strictly to intake-available metadata, tabular feeds carry zero proactive separation. Reporting this honest negative result protects engineering from deploying lookahead-dependent models into production.

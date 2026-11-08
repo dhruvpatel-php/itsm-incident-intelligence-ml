@@ -243,11 +243,11 @@ def build_rfc_and_assets(df=None):
 
     top5 = ci_registry.head(5)
     offsets = [
-        (-135, 16),   # SUB000508: top-left (280, 92.4)
-        (20, 16),     # WBA000124: top-right (477, 91.1)
-        (20, 16),     # WBA000082: mid-right (89, 85.2)
-        (-135, 14),   # WBA000107: mid-left  (58, 82.5)
-        (20, -28),    # WBA000122: lower-right (99, 81.7)
+        (5, 28),      # SUB000508: straight up into upper clear zone
+        (75, -10),    # WBA000124: far right into empty upper-right quadrant
+        (-50, 32),    # WBA000082: up & slightly left
+        (-135, 15),   # WBA000107: left & up
+        (25, -28),    # WBA000122: right & down
     ]
     for (_, row), (dx, dy) in zip(top5.iterrows(), offsets):
         ax.annotate(
@@ -261,7 +261,7 @@ def build_rfc_and_assets(df=None):
         )
 
     ax.set_xscale('log')
-    ax.set_ylim(15, 106)
+    ax.set_ylim(15, 110)
     ax.set_title("Pillar 4: Configuration Item (CI) Bayesian Asset Risk Matrix (N >= 10)", fontsize=13, fontweight='bold', pad=12)
     ax.set_xlabel("Total Incident Volume (Log Scale, Min N=10)", fontsize=11)
     ax.set_ylabel("Composite Asset Risk Index (0 - 100)", fontsize=11)

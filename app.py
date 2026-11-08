@@ -144,7 +144,7 @@ sidebar_nav = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**Lead Data Scientist**: Dhruv Patel")
+st.sidebar.markdown("**Author**: Dhruv Patel (Data Scientist)")
 st.sidebar.markdown("**Framework**: ITIL Process Framework + Machine Learning")
 st.sidebar.markdown(f"**Dataset**: {dl_m['total_rows'] / 1000:.1f}K Records ({ds['min_year']}-{ds['max_year']})")
 

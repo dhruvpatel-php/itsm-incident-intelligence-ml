@@ -395,11 +395,11 @@ def build_routing(df=None, base_vol_2014=72714):
     ax.set_xticks(x_pos)
     formatted_labels = [c.replace('_', '\n') for c in classes_d]
     ax.set_xticklabels(formatted_labels, rotation=0, ha='center', fontsize=10)
-    ax.set_ylim(0, 1.25)
-    ax.legend(loc='upper right', frameon=True, framealpha=0.95, edgecolor='#cbd5e1', fontsize=9.5)
+    ax.set_ylim(0, 1.05)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.22), ncol=3, frameon=True, framealpha=0.95, edgecolor='#cbd5e1', fontsize=9.0)
     ax.grid(axis='y', linestyle='--', alpha=0.4)
     plt.tight_layout()
-    fig.savefig(FIGURES_DIR / "10_pillar3_routing_recall.png", dpi=300)
+    fig.savefig(FIGURES_DIR / "10_pillar3_routing_recall.png", dpi=300, bbox_inches='tight')
     plt.close(fig)
 
     # -------------------------------------------------------------

@@ -30,25 +30,11 @@ from src.config import (
     RANDOM_STATE,
     STABLE_REGIME_START,
     PRIORITY_MATRIX,
+    ITILPriorityEngine,
     setup_logger
 )
 
 logger = setup_logger("Pillar3_Routing")
-
-# Top-level class for pickling compatibility
-class ITILPriorityEngine:
-    def __init__(self, imputer_model, imp_cols, ci_freq):
-        self.imputer = imputer_model
-        self.imp_cols = imp_cols
-        self.ci_freq = ci_freq
-        self.matrix = PRIORITY_MATRIX
-
-    def resolve(self, row):
-        imp = row.get('Impact_Num')
-        urg = row.get('Urgency_Num')
-        if pd.notnull(imp) and pd.notnull(urg):
-            return self.matrix.get((int(imp), int(urg)), 3)
-        return 3
 
 def build_routing(df=None, base_vol_2014=72714):
     logger.info("=" * 70)
@@ -397,18 +383,20 @@ def build_routing(df=None, base_vol_2014=72714):
     rec_c_vals = [float(rep_c.get(c, {'recall': 0.0})['recall']) for c in classes_d]
     rec_d_vals = [float(rep_d[c]['recall']) for c in classes_d]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 5.5))
     x_pos = np.arange(len(classes_d))
     width = 0.25
     ax.bar(x_pos - width, rec_a_vals, width, label='Variant A (Full Asset Metadata)', color='#2563eb', edgecolor='black', alpha=0.85)
     ax.bar(x_pos, rec_d_vals, width, label='Variant D (Category + WBS + timing: Balanced)', color='#10b981', edgecolor='black', alpha=0.85)
     ax.bar(x_pos + width, rec_c_vals, width, label='Variant C (Category + Timing)', color='#f59e0b', edgecolor='black', alpha=0.85)
-    ax.set_title("Pillar 3: Per-Queue Routing Recall Across Intake Variants (Holdout Set)", fontsize=13, fontweight='bold', pad=12)
+    ax.set_title("Pillar 3: Per-Queue Routing Recall Across Intake Variants (Holdout Set)", fontsize=13, fontweight='bold', pad=14)
     ax.set_ylabel("Recall Rate", fontsize=11)
-    ax.set_xlabel("Consolidated IT Service Department", fontsize=11)
+    ax.set_xlabel("Consolidated IT Service Department", fontsize=11, labelpad=8)
     ax.set_xticks(x_pos)
-    ax.set_xticklabels(classes_d, rotation=15, ha='right', fontsize=10)
-    ax.legend(loc='upper right')
+    formatted_labels = [c.replace('_', '\n') for c in classes_d]
+    ax.set_xticklabels(formatted_labels, rotation=0, ha='center', fontsize=10)
+    ax.set_ylim(0, 1.25)
+    ax.legend(loc='upper right', frameon=True, framealpha=0.95, edgecolor='#cbd5e1', fontsize=9.5)
     ax.grid(axis='y', linestyle='--', alpha=0.4)
     plt.tight_layout()
     fig.savefig(FIGURES_DIR / "10_pillar3_routing_recall.png", dpi=300)

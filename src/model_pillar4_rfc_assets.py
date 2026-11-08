@@ -242,18 +242,26 @@ def build_rfc_and_assets(df=None):
     cbar.set_label("Shrunk High-Priority Rate (Bayesian)", fontsize=11)
 
     top5 = ci_registry.head(5)
-    for _, row in top5.iterrows():
+    offsets = [
+        (-135, 16),   # SUB000508: top-left (280, 92.4)
+        (20, 16),     # WBA000124: top-right (477, 91.1)
+        (20, 16),     # WBA000082: mid-right (89, 85.2)
+        (-135, 14),   # WBA000107: mid-left  (58, 82.5)
+        (20, -28),    # WBA000122: lower-right (99, 81.7)
+    ]
+    for (_, row), (dx, dy) in zip(top5.iterrows(), offsets):
         ax.annotate(
             f"{row['CI_Name']} ({row['CI_Cat']})\nRisk: {row['ARI_Final']:.1f}",
             xy=(row['total_incidents'], row['ARI_Final']),
-            xytext=(10, 5),
+            xytext=(dx, dy),
             textcoords='offset points',
             fontsize=8.5, fontweight='bold',
-            bbox=dict(boxstyle="round,pad=0.3", fc="#ffffff", ec="#64748b", alpha=0.9),
-            arrowprops=dict(arrowstyle="->", color='#1e293b', lw=1.0)
+            bbox=dict(boxstyle="round,pad=0.35", fc="#ffffff", ec="#475569", alpha=0.95),
+            arrowprops=dict(arrowstyle="->", color='#0f172a', lw=1.2)
         )
 
     ax.set_xscale('log')
+    ax.set_ylim(15, 106)
     ax.set_title("Pillar 4: Configuration Item (CI) Bayesian Asset Risk Matrix (N >= 10)", fontsize=13, fontweight='bold', pad=12)
     ax.set_xlabel("Total Incident Volume (Log Scale, Min N=10)", fontsize=11)
     ax.set_ylabel("Composite Asset Risk Index (0 - 100)", fontsize=11)

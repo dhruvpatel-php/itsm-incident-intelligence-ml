@@ -12,6 +12,7 @@
 ## 📌 Executive Summary & Deliverables
 
 **Client**: ABC Tech  
+**Author**: Dhruv Patel (Data Scientist)  
 **Category**: IT Service Management (ITSM) Machine Learning  
 **Project Reference**: PM-PR-0012  
 **Final Deliverable**: [`PRCL-0012_ITSM_Machine_Learning.ipynb`](PRCL-0012_ITSM_Machine_Learning.ipynb)

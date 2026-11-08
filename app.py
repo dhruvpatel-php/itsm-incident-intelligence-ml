@@ -11,7 +11,13 @@ import pandas as pd
 import streamlit as st
 import joblib
 
-from src.config import FIGURES_DIR, MODELS_DIR, REPORTS_DIR
+from src.config import (
+    ARI_MIN_INCIDENTS,
+    ARI_SHRINKAGE_M,
+    FIGURES_DIR,
+    MODELS_DIR,
+    REPORTS_DIR,
+)
 
 st.set_page_config(
     page_title="ABC Tech | ITSM Machine Learning Suite",
@@ -36,7 +42,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-title">ABC Tech — ITSM Predictive Intelligence Platform</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">ITIL Process Optimization, Early Warning Triage, Volume Forecasting & Asset Risk Profiling</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">ITIL Process Optimization, Early Warning Triage, Volume Forecasting & Asset Risk Profiling<br><span style="font-size: 0.95rem; color: #4b5563; font-weight: 600;">Author: Dhruv Patel (Data Scientist)</span></div>', unsafe_allow_html=True)
 
 # Helper function to load models and single source of truth metrics
 @st.cache_resource
@@ -138,6 +144,7 @@ sidebar_nav = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
+st.sidebar.markdown("**Lead Data Scientist**: Dhruv Patel")
 st.sidebar.markdown("**Framework**: ITIL Process Framework + Machine Learning")
 st.sidebar.markdown(f"**Dataset**: {dl_m['total_rows'] / 1000:.1f}K Records ({ds['min_year']}-{ds['max_year']})")
 
@@ -346,7 +353,11 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
     st.image(str(FIGURES_DIR / "12_pillar4_ci_asset_risk_matrix.png"), width="stretch")
 
     st.markdown("### Top Critical Enterprise Infrastructure Assets")
-    st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; {p4_m["min_incidents_threshold"]})</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {p4_m["evaluated_assets_count"]} active assets with at least {p4_m["min_incidents_threshold"]} incidents and apply Empirical Bayes shrinkage (m={p4_m["bayes_shrinkage_m"]:.1f}), guaranteeing rank stability (Spearman rho = {p4_m["min_spearman_rho"]:.4f}).</div>', unsafe_allow_html=True)
+    min_n = p4_m.get("min_incidents_threshold", ARI_MIN_INCIDENTS)
+    m_shrink = p4_m.get("bayes_shrinkage_m", ARI_SHRINKAGE_M)
+    eval_cnt = p4_m.get("evaluated_assets_count", len(p4_assets))
+    rho_val = p4_m.get("min_spearman_rho", 0.9825)
+    st.markdown(f'<div class="callout-info"><strong>Bayesian Shrinkage Filter (Minimum Threshold N &ge; {min_n})</strong>: Raw incident frequency scoring exhibits severe small-sample volatility (e.g. assets with single incidents topping raw risk lists). We filter on {eval_cnt} active assets with at least {min_n} incidents and apply Empirical Bayes shrinkage (m={m_shrink:.1f}), guaranteeing rank stability (Spearman rho = {rho_val:.4f}).</div>', unsafe_allow_html=True)
 
     top_n = st.slider("Number of Assets to Display", 5, 50, 15)
     cols = ['CI_Name', 'CI_Cat', 'total_incidents', 'p1p2_incidents', 'rfc_incidents', 'ARI_Final', 'Risk_Tier']
@@ -366,6 +377,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
 
     st.markdown("---")
     st.markdown("### Proactive RFC Prediction (Negative Result Audit)")
+    rfc_prev = p4_m.get("rfc_prevalence", 0.0098)
     rfc_c1, rfc_c2 = st.columns([1, 1])
     with rfc_c1:
         st.image(str(FIGURES_DIR / "11_pillar4_rfc_roc_curve.png"), width="stretch")
@@ -373,7 +385,7 @@ elif sidebar_nav == "Pillar 4: Asset Risk & RFC":
         st.markdown(f"""
         **Scientific Integrity Audit**:
         - **Test Holdout ROC-AUC**: **{p4_m['rfc_roc_auc']:.4f}** (Near random chance baseline)
-        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~{p4_m['rfc_prevalence']*100:.2f}%)
+        - **Test Holdout PR-AUC**: **{p4_m['rfc_pr_auc']:.4f}** (Prevalence baseline: ~{rfc_prev*100:.2f}%)
         
         **Why Circular Leakage Was Eliminated**:
         Historical models claimed inflated separation by leaking post-investigation fields (`Related_Change`, `No_of_Related_Changes`). In standard ITIL workflows, change identifiers are created after troubleshooting begins. Restricted strictly to intake-available metadata, tabular feeds carry zero proactive separation. Reporting this honest negative result protects engineering from deploying lookahead-dependent models into production.

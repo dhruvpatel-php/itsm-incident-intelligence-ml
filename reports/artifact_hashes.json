@@ -20,12 +20,12 @@
       "size_bytes": 1867
     },
     "pillar3_department_router.joblib": {
-      "sha256": "9159b1a7bcf9f9b96b57c09e44c4296b8bcadea24adabf9b99572e3b9b06d822",
-      "size_bytes": 3410212
+      "sha256": "01b37048f2843b8294ff4bb26e96eb4eeeb53dc3f8239d11d9c60063393a61b5",
+      "size_bytes": 3410064
     },
     "pillar3_priority_classifier.joblib": {
-      "sha256": "bbdb2925049ff93b0093d5c657c0306bafe139a9d89a18cae1cb60cf10753b5c",
-      "size_bytes": 1243069
+      "sha256": "28a1fe1777d4352bbf76cd90744b4cc0ec2f64d82f428b4bc962a397c9616ab9",
+      "size_bytes": 1242686
     },
     "pillar4_asset_risk_scores.csv": {
       "sha256": "761e02ea47b7b7309e885175b84986b6f983db59a595cd86624570e9faf5a542",

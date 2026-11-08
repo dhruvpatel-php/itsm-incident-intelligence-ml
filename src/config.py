@@ -47,6 +47,20 @@ PRIORITY_MATRIX = {
     (5, 1): 3, (5, 2): 3, (5, 3): 4, (5, 4): 4, (5, 5): 5,
 }
 
+class ITILPriorityEngine:
+    def __init__(self, imputer_model=None, imp_cols=None, ci_freq=None):
+        self.imputer = imputer_model
+        self.imp_cols = imp_cols
+        self.ci_freq = ci_freq
+        self.matrix = PRIORITY_MATRIX
+
+    def resolve(self, row):
+        imp = row.get('Impact_Num')
+        urg = row.get('Urgency_Num')
+        if imp is not None and urg is not None and not (imp != imp or urg != urg):
+            return self.matrix.get((int(imp), int(urg)), 3)
+        return 3
+
 # Standardized Logging Setup
 def setup_logger(name="ITSM_Pipeline"):
     logger = logging.getLogger(name)

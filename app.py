@@ -40,15 +40,13 @@ st.markdown('<div class="sub-title">ITIL Process Optimization, Early Warning Tri
 
 # Helper function to load models and single source of truth metrics
 @st.cache_resource
-def load_artifacts():
+def _load_model_artifacts():
     missing = []
     for f in ["pillar1_high_priority_model.joblib", "pillar2_volume_forecaster.joblib",
               "pillar3_department_router.joblib", "pillar3_priority_classifier.joblib",
               "pillar4_rfc_predictor.joblib", "pillar4_asset_risk_scores.csv"]:
         if not (MODELS_DIR / f).exists():
             missing.append(f)
-    if not (REPORTS_DIR / "metrics.json").exists():
-        missing.append("reports/metrics.json")
 
     if missing:
         raise FileNotFoundError(f"Missing pipeline artifacts: {', '.join(missing)}. Run `python -m src.run_all` first.")
@@ -59,6 +57,12 @@ def load_artifacts():
     p3_prio = joblib.load(MODELS_DIR / "pillar3_priority_classifier.joblib")
     p4_rfc = joblib.load(MODELS_DIR / "pillar4_rfc_predictor.joblib")
     p4_assets = pd.read_csv(MODELS_DIR / "pillar4_asset_risk_scores.csv")
+    return p1, p2, p3_dept, p3_prio, p4_rfc, p4_assets
+
+def load_artifacts():
+    if not (REPORTS_DIR / "metrics.json").exists():
+        raise FileNotFoundError("Missing pipeline artifacts: reports/metrics.json. Run `python -m src.run_all` first.")
+    p1, p2, p3_dept, p3_prio, p4_rfc, p4_assets = _load_model_artifacts()
     with open(REPORTS_DIR / "metrics.json", "r", encoding="utf-8") as fh:
         metrics = json.load(fh)
     return p1, p2, p3_dept, p3_prio, p4_rfc, p4_assets, metrics
